@@ -1,16 +1,57 @@
-# React + Vite
+# FOX SUMMON (狐召喚) 🦊
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+「コン。」
 
-Currently, two official plugins are available:
+ハンドサインと音声認識を組み合わせた、没入型 **AR "狐召喚" ジョークアプリ** です。
+カメラに向かってあの「狐の手」を作り、言葉を発することで、異界から狐の悪魔を呼び出します。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🌐 Demo
+[https://fox-summon-gmgbwms8n-iidaatcnts-projects.vercel.app](https://fox-summon-gmgbwms8n-iidaatcnts-projects.vercel.app)
 
-## React Compiler
+※ カメラとマイクの権限を許可してください。
+※ モバイル推奨。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ 特徴
+*   **MediaPipe Hand Tracking**: 高速なAI処理で「狐のハンドサイン」のみを正確に検知してロックオンします。
+*   **Voice Trigger**: 「コン！(Kon)」という声をトリガーに演出が発動します。
+*   **Immersive AR**: Three.js による迫力ある画面シェイクと召喚エフェクト。
 
-## Expanding the ESLint configuration
+## 🛠 技術スタック
+*   **Framework**: React + Vite
+*   **3D/VFX**: Three.js, React Three Fiber, Drei
+*   **Computer Vision**: MediaPipe Tasks Vision
+*   **Motion**: Framer Motion
+*   **Styling**: TailwindCSS
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🚀 開発環境のセットアップ
+
+1.  **リポジトリのクローン**
+    ```bash
+    git clone https://github.com/iidaatcnt/fox-summon.git
+    cd fox-summon
+    ```
+
+2.  **依存関係のインストール**
+    ```bash
+    npm install
+    ```
+
+3.  **ローカルサーバーの起動**
+    ```bash
+    npm run dev
+    ```
+    ブラウザで `http://localhost:5173` を開きます。
+
+## 🎮 遊び方
+
+1.  アプリを起動し、カメラへのアクセスを許可します。
+2.  カメラに向かって、**中指と薬指を親指につけ、人差し指と小指を立てる**（狐の影絵）ポーズを作ります。
+3.  画面上のレティクルが赤くなり「FOX SIGN LOCKED」と表示されたら準備完了。
+4.  はっきりと短く**「コン！」**と唱えます。
+5.  ...何かが起きます。
+
+## 📄 License
+MIT
+
+---
+*Created by Antigravity*

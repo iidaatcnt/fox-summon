@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Webcam from 'react-webcam';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
-import { useTexture, Shake } from '@react-three/drei';
+import { useTexture, CameraShake } from '@react-three/drei';
 import { Mic } from 'lucide-react';
 import * as THREE from 'three';
 import { useHandTracking } from './hooks/useHandTracking';
@@ -28,7 +28,7 @@ const FoxScene = ({ trigger }) => {
 const Effects = ({ trigger }) => {
   if (!trigger) return null;
   return (
-    <Shake
+    <CameraShake
       maxY={0.2}
       maxYYaw={0.2}
       pitchFrequency={0.5}

@@ -128,7 +128,7 @@ export default function Home() {
     const [bgFrame, setBgFrame] = useState(0);
     const [cameraPermission, setCameraPermission] = useState(false);
     const webcamRef = useRef<any>(null);
-    const { isFoxHand, handPosition } = useHandTracking(webcamRef);
+    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState);
 
     // Sync check for the hand silhouette
     const [isSynced, setIsSynced] = useState(false);
@@ -396,6 +396,24 @@ export default function Home() {
                             onUserMedia={() => setCameraPermission(true)}
                             videoConstraints={{ facingMode: "user" }}
                         />
+
+                        {/* HUD / Monitoring Lines */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            <motion.div
+                                className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                                animate={{ top: ["0%", "100%", "0%"] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                            />
+                            {/* Corners */}
+                            <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-red-500/60" />
+                            <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-red-500/60" />
+                            <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-red-500/60" />
+                            <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-red-500/60" />
+
+                            <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">
+                                MONITORING_ON
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
-export const useHandTracking = (videoRef: React.RefObject<any>) => {
+export const useHandTracking = (videoRef: React.RefObject<any>, dependency?: any) => {
     const [handLandmarker, setHandLandmarker] = useState<HandLandmarker | null>(null);
     const [isFoxHand, setIsFoxHand] = useState(false);
     const [handPosition, setHandPosition] = useState<{ x: number, y: number } | null>(null);
@@ -25,40 +25,49 @@ export const useHandTracking = (videoRef: React.RefObject<any>) => {
     }, []);
 
     useEffect(() => {
-        if (!handLandmarker || !videoRef.current || !videoRef.current.video) return;
+        if (!handLandmarker) return;
 
         let requestAnimationFrameId: number;
-        const video = videoRef.current.video;
 
-        const predict = async () => {
-            if (video.readyState >= 2) {
-                const startTimeMs = performance.now();
-                const result = handLandmarker.detectForVideo(video, startTimeMs);
+        const startPrediction = () => {
+            const video = videoRef.current?.video;
+            if (!video) return;
 
-                if (result.landmarks && result.landmarks.length > 0) {
-                    const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
-                    setIsFoxHand(detected);
-                    if (detected) {
-                        // Use middle tip as reference point for hand position
-                        const pos = result.landmarks[0][12];
-                        setHandPosition({ x: pos.x, y: pos.y });
+            const predict = async () => {
+                if (video.readyState >= 2) {
+                    const startTimeMs = performance.now();
+                    const result = handLandmarker.detectForVideo(video, startTimeMs);
+
+                    if (result.landmarks && result.landmarks.length > 0) {
+                        const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
+                        setIsFoxHand(detected);
+                        if (detected) {
+                            const pos = result.landmarks[0][12];
+                            setHandPosition({ x: pos.x, y: pos.y });
+                        }
+                    } else {
+                        setIsFoxHand(false);
+                        setHandPosition(null);
                     }
-                } else {
-                    setIsFoxHand(false);
-                    setHandPosition(null);
                 }
+                requestAnimationFrameId = requestAnimationFrame(predict);
+            };
+
+            if (video.readyState >= 2) {
+                predict();
+            } else {
+                video.onloadeddata = predict;
             }
-            requestAnimationFrameId = requestAnimationFrame(predict);
         };
 
-        if (video.readyState >= 2) {
-            predict();
-        } else {
-            video.onloadeddata = predict;
-        }
+        // Delay slightly to ensure ref is populated after mount
+        const timeoutId = setTimeout(startPrediction, 500);
 
-        return () => cancelAnimationFrame(requestAnimationFrameId);
-    }, [handLandmarker, videoRef]);
+        return () => {
+            clearTimeout(timeoutId);
+            cancelAnimationFrame(requestAnimationFrameId);
+        };
+    }, [handLandmarker, videoRef, dependency]);
 
     return { isFoxHand, handPosition };
 };

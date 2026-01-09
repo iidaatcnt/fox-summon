@@ -385,55 +385,51 @@ export default function Home() {
                 )}
             </div>
 
-            {/* Webcam Layer */}
-            <AnimatePresence>
-                {showWebcam && (
-                    <motion.div
-                        initial={{ opacity: 0, x: 100 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.5 } }}
-                        className="absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl"
-                    >
-                        <Webcam
-                            ref={webcamRef}
-                            audio={false}
-                            className="w-full h-full object-cover grayscale contrast-125 brightness-125"
-                            onUserMedia={() => setCameraPermission(true)}
-                            videoConstraints={{ facingMode: "user" }}
+            {/* Webcam Layer (Always mounted for persistence, hidden when not needed) */}
+            <div
+                className={`absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl transition-all duration-700 pointer-events-none
+                ${showWebcam ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-20 scale-50'}`}
+            >
+                <div className="relative w-full h-full pointer-events-auto">
+                    <Webcam
+                        ref={webcamRef}
+                        audio={false}
+                        className="w-full h-full object-cover grayscale contrast-125 brightness-125"
+                        onUserMedia={() => setCameraPermission(true)}
+                        videoConstraints={{ facingMode: "user" }}
+                    />
+
+                    {/* HUD / Monitoring Lines */}
+                    <div className="absolute inset-0 pointer-events-none">
+                        <motion.div
+                            className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                            animate={{ top: ["0%", "100%", "0%"] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                         />
+                        {/* Corners */}
+                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-red-500/60" />
+                        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-red-500/60" />
+                        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-red-500/60" />
+                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-red-500/60" />
 
-                        {/* HUD / Monitoring Lines */}
-                        <div className="absolute inset-0 pointer-events-none">
-                            <motion.div
-                                className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                                animate={{ top: ["0%", "100%", "0%"] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                            />
-                            {/* Corners */}
-                            <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-red-500/60" />
-                            <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-red-500/60" />
-                            <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-red-500/60" />
-                            <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-red-500/60" />
-
-                            <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">
-                                {isFoxHand ? "HAND_READY" : "SCANNING_HAND"}
-                            </div>
-
-                            {/* Tracking Dot Feedback */}
-                            {handPosition && (
-                                <div
-                                    className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#f00] transition-all duration-75"
-                                    style={{
-                                        left: `${handPosition.x * 100}%`,
-                                        top: `${handPosition.y * 100}%`,
-                                        transform: 'translate(-50%, -50%)'
-                                    }}
-                                />
-                            )}
+                        <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">
+                            {isFoxHand ? "HAND_READY" : "SCANNING_HAND"}
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+
+                        {/* Tracking Dot Feedback */}
+                        {handPosition && (
+                            <div
+                                className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#f00] transition-all duration-75"
+                                style={{
+                                    left: `${handPosition.x * 100}%`,
+                                    top: `${handPosition.y * 100}%`,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                            />
+                        )}
+                    </div>
+                </div>
+            </div>
 
             {/* 3D Summoning Layer */}
             <div className="absolute inset-0 z-20 pointer-events-none">

@@ -28,54 +28,43 @@ export const useHandTracking = (videoRef: React.RefObject<any>, dependency?: any
         if (!handLandmarker) return;
 
         let requestAnimationFrameId: number;
+        let isActive = true;
 
-        const startPrediction = () => {
+        const predictLoop = async () => {
+            if (!isActive) return;
+
             const video = videoRef.current?.video;
-            if (!video) return;
-
-            const predict = async () => {
-                if (!handLandmarker) return;
-
+            if (video && video.readyState >= 2) {
                 try {
-                    if (video.readyState >= 2) {
-                        const startTimeMs = performance.now();
-                        const result = handLandmarker.detectForVideo(video, startTimeMs);
+                    const startTimeMs = performance.now();
+                    const result = handLandmarker.detectForVideo(video, startTimeMs);
 
-                        if (result.landmarks && result.landmarks.length > 0) {
-                            const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
-                            setIsFoxHand(detected);
-                            if (detected) {
-                                // Tip of middle finger (index 12)
-                                const pos = result.landmarks[0][12];
-                                setHandPosition({ x: pos.x, y: pos.y });
-                            }
-                        } else {
-                            setIsFoxHand(false);
-                            setHandPosition(null);
+                    if (result.landmarks && result.landmarks.length > 0) {
+                        const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
+                        setIsFoxHand(detected);
+                        if (detected) {
+                            const pos = result.landmarks[0][12];
+                            setHandPosition({ x: pos.x, y: pos.y });
                         }
+                    } else {
+                        setIsFoxHand(false);
+                        setHandPosition(null);
                     }
                 } catch (err) {
-                    console.error("Tracking Error:", err);
+                    // Silently ignore tracking errors unless critical
                 }
-
-                requestAnimationFrameId = requestAnimationFrame(predict);
-            };
-
-            if (video.readyState >= 2) {
-                predict();
-            } else {
-                video.onloadeddata = () => predict();
             }
+
+            requestAnimationFrameId = requestAnimationFrame(predictLoop);
         };
 
-        // Delay slightly to ensure ref is populated after mount
-        const timeoutId = setTimeout(startPrediction, 500);
+        predictLoop();
 
         return () => {
-            clearTimeout(timeoutId);
+            isActive = false;
             cancelAnimationFrame(requestAnimationFrameId);
         };
-    }, [handLandmarker, videoRef, dependency]);
+    }, [handLandmarker, videoRef]);
 
     return { isFoxHand, handPosition };
 };

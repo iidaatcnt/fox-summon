@@ -55,16 +55,13 @@ const Particles = ({ count = 20, color = "#ff5e00" }) => {
 const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
     const texRight = useTexture('/fox_right.jpg');
     const texLeft = useTexture('/fox_left.jpg');
-    // If hand is on the right side of screen (handX > 0.5), summon from right (use right texture).
-    // Note: textures are already flipped so texRight is fox looking left (summoned from right),
-    // and texLeft is fox looking right (summoned from left).
     const isFromRight = handX > 0.5;
     const tex = isFromRight ? texRight : texLeft;
 
     const meshRef = useRef<THREE.Mesh>(null);
     const [opac, setOpac] = useState(0);
     const [scaleFactor, setScaleFactor] = useState(0.1);
-    const [posX, setPosX] = useState(10);
+    const [posX, setPosX] = useState(15);
     const [posY, setPosY] = useState(-5);
 
     useEffect(() => {
@@ -72,22 +69,22 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
         const animate = () => {
             if (!meshRef.current) return;
             if (state === 'summoning') {
-                const targetX = 0;
-                const startX = isFromRight ? 8 : -8;
-                setPosX(prev => THREE.MathUtils.lerp(prev === 10 || prev === -10 ? startX : prev, targetX, 0.15));
+                const targetX = isFromRight ? -25 : 25;
+                const startX = isFromRight ? 20 : -20;
+                setPosX(prev => THREE.MathUtils.lerp(prev === 15 || prev === -15 ? startX : prev, targetX, 0.08));
                 setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.15));
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 4, 0.1));
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 35, 0.05));
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.15));
             } else if (state === 'closeup') {
                 setPosX(0);
                 setPosY(0);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.08));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 25, 0.1));
                 setOpac(1);
             } else if (state === 'evaporating') {
-                setScaleFactor(prev => prev + 0.5);
-                setOpac(prev => Math.max(0, prev - 0.05));
+                setScaleFactor(prev => prev + 1.2);
+                setOpac(prev => Math.max(0, prev - 0.1));
             } else {
-                setPosX(isFromRight ? 10 : -10);
+                setPosX(isFromRight ? 15 : -15);
                 setPosY(-5);
                 setScaleFactor(0.1);
                 setOpac(0);
@@ -101,10 +98,10 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
     return (
         <group>
             <ParallaxGroup intensity={2}>
-                <Particles count={50} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
+                <Particles count={state === 'done' ? 100 : 30} color={state === 'done' ? "#ff0000" : "#ff004c"} />
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[posX, posY, -5]} scale={[scaleFactor, scaleFactor, 1]}>
-                <planeGeometry args={[1.5, 1.5]} />
+            <mesh ref={meshRef} position={[posX, posY, -2]} scale={[scaleFactor, scaleFactor, 1]}>
+                <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
                     map={tex}
                     transparent
@@ -119,14 +116,38 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
 
 const SummonEffects = ({ state }: { state: string }) => {
     if (state !== 'summoning' && state !== 'closeup') return null;
-    return <CameraShake maxPitch={0.5} maxYaw={0.5} intensity={2} />;
+    return <CameraShake maxPitch={1.2} maxYaw={1.2} intensity={4} />;
 };
 
 export default function Home() {
     const [gameState, setGameState] = useState('idle');
+    const [bgFrame, setBgFrame] = useState(0);
     const [cameraPermission, setCameraPermission] = useState(false);
     const webcamRef = useRef<any>(null);
     const { isFoxHand, handPosition } = useHandTracking(webcamRef);
+
+    // Sync check for the hand silhouette
+    const [isSynced, setIsSynced] = useState(false);
+
+    useEffect(() => {
+        if (!isFoxHand || !handPosition) {
+            setIsSynced(false);
+            return;
+        }
+        // Silhouette is at center area
+        const targetX = 0.5;
+        const targetY = 0.5;
+        const dist = Math.sqrt(Math.pow(handPosition.x - targetX, 2) + Math.pow(handPosition.y - targetY, 2));
+        setIsSynced(dist < 0.18);
+    }, [isFoxHand, handPosition]);
+
+    // Flip-book animation effect
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setBgFrame(prev => (prev + 1) % 2);
+        }, 120);
+        return () => clearInterval(interval);
+    }, []);
 
     const playBeep = (freq = 880, length = 0.15) => {
         try {
@@ -145,16 +166,19 @@ export default function Home() {
     };
 
     useEffect(() => {
-        if (['summoning', 'closeup', 'evaporating'].includes(gameState)) return;
-        if (isFoxHand) {
+        if (['summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
+
+        if (isSynced) {
             if (gameState !== 'locked') {
                 setGameState('locked');
-                playBeep();
+                playBeep(440, 0.2);
             }
-        } else if (gameState === 'locked') {
+        } else if (isFoxHand) {
+            setGameState('detecting');
+        } else {
             setGameState('idle');
         }
-    }, [isFoxHand, gameState]);
+    }, [isSynced, isFoxHand, gameState]);
 
     useEffect(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -175,35 +199,44 @@ export default function Home() {
     }, [gameState]);
 
     const startSummon = () => {
-        if (gameState === 'summoning' || gameState === 'closeup' || gameState === 'evaporating') return;
+        if (['summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
         setGameState('summoning');
         setTimeout(() => {
             setGameState('closeup');
             setTimeout(() => {
                 setGameState('evaporating');
-                setTimeout(() => setGameState('idle'), 1500);
-            }, 1000);
-        }, 800);
+                setTimeout(() => setGameState('done'), 1000);
+            }, 800);
+        }, 1200);
     };
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
-            {/* Background Layer: City with Leech Monster */}
+            {/* Background Layer: Animated Flip-book */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/city_bg.png"
+                    src={gameState === 'done' ? "/city_bg.png" : (bgFrame === 0 ? "/city_bg.png" : "/city_bg2.png")}
                     alt="City Background"
-                    className="w-full h-full object-cover opacity-60"
+                    className={`w-full h-full object-cover transition-none ${gameState === 'done' ? 'grayscale opacity-80 brightness-75' : 'opacity-70'}`}
+                    style={gameState === 'done' ? { filter: 'sepia(1) saturate(5) hue-rotate(-50deg)' } : {}}
                 />
-                <div className="absolute inset-0 bg-black/30" />
+
+                {/* Damage Overlay when done */}
+                {gameState === 'done' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute inset-0 bg-red-900/40 mix-blend-multiply"
+                    />
+                )}
             </div>
 
             {/* Webcam Layer */}
-            <div className="absolute top-4 right-4 w-64 h-48 z-10 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl">
+            <div className="absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl">
                 <Webcam
                     ref={webcamRef}
                     audio={false}
-                    className="w-full h-full object-cover grayscale contrast-125"
+                    className="w-full h-full object-cover grayscale contrast-125 brightness-125"
                     onUserMedia={() => setCameraPermission(true)}
                     videoConstraints={{ facingMode: "user" }}
                 />
@@ -220,73 +253,83 @@ export default function Home() {
                 </Canvas>
             </div>
 
+            {/* Hand Sign Silhouette Overlay */}
+            <AnimatePresence>
+                {(gameState === 'detecting' || gameState === 'locked') && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: isSynced ? 0.3 : 0.6, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none"
+                    >
+                        <div className={`w-96 h-96 transition-colors duration-300 ${isSynced ? 'text-red-600' : 'text-white'}`}>
+                            <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
+                                <path d="M20,80 Q30,40 25,20 L35,45 Q50,40 65,45 L75,20 Q70,40 80,80 Z" />
+                                <circle cx="50" cy="55" r="5" className="fill-red-600 animate-pulse" />
+                            </svg>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* UI Overlay */}
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-8 pointer-events-none">
                 <div className="w-full flex justify-between items-start">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-red-600 animate-pulse rounded-full" />
-                            <h1 className="text-2xl font-black tracking-tighter italic text-red-600">FOX:SUMMON_NEXT</h1>
-                        </div>
-                        <div className="text-[10px] font-mono text-red-500/60 uppercase tracking-widest pl-5">
-                            System Active: Detection On
+                            <h1 className="text-2xl font-black tracking-tighter italic text-red-600">ANIME:REPRO_V1</h1>
                         </div>
                     </div>
                 </div>
 
                 <AnimatePresence>
-                    {gameState === 'locked' && (
-                        <div className="flex flex-col items-center gap-8">
+                    {(gameState === 'detecting' || gameState === 'locked') && (
+                        <div className="flex flex-col items-center gap-8 mb-32">
                             {/* Dialogue Message From Monster */}
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                className="bg-black/80 backdrop-blur-md border-l-4 border-red-600 p-6 rounded-r-xl max-w-sm shadow-2xl"
+                                className="bg-black/90 p-8 border-l-8 border-red-600 shadow-[0_0_50px_rgba(255,0,0,0.3)] max-w-xl"
                             >
-                                <p className="text-red-500 text-[10px] font-mono uppercase tracking-[0.3em] mb-2">Internal Signal</p>
-                                <p className="text-white text-xl font-bold leading-relaxed italic">
+                                <p className="text-red-500 text-xs font-mono uppercase tracking-[0.4em] mb-4">Signal: Synchronized</p>
+                                <p className="text-white text-3xl font-black italic tracking-tighter leading-tight text-center">
                                     「準備はいいよ。いつでも喚びな…。」
                                 </p>
                             </motion.div>
 
-                            <motion.div
-                                initial={{ scale: 2, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.5, opacity: 0 }}
-                                className="relative w-64 h-64 flex items-center justify-center"
-                            >
-                                <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-red-600" />
-                                <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-red-600" />
-                                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-red-600" />
-                                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-red-600" />
-                                <div className="text-center">
-                                    <p className="text-red-500 font-bold text-3xl tracking-tighter drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">
-                                        コン！
-                                    </p>
-                                    <p className="text-white/50 text-[10px] mt-2 font-mono uppercase">Voice Trigger Ready</p>
-                                </div>
-                            </motion.div>
+                            {isSynced && (
+                                <motion.div
+                                    animate={{ scale: [1, 1.1, 1] }}
+                                    transition={{ repeat: Infinity, duration: 0.5 }}
+                                    className="text-white font-black text-6xl italic drop-shadow-[0_0_40px_rgba(220,38,38,1)] uppercase"
+                                >
+                                    KON!
+                                </motion.div>
+                            )}
                         </div>
                     )}
                 </AnimatePresence>
 
-                <AnimatePresence>
-                    {(gameState === 'summoning' || gameState === 'closeup') && (
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1.5, opacity: 1 }}
-                            exit={{ scale: 3, opacity: 0, filter: 'blur(20px)' }}
-                            className="absolute inset-0 flex items-center justify-center"
+                {gameState === 'done' && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 2 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center gap-4 bg-red-600 p-8 shadow-2xl"
+                    >
+                        <h2 className="text-5xl font-black italic">MISSION COMPLETE</h2>
+                        <button
+                            className="pointer-events-auto bg-white text-black px-10 py-3 font-black text-xl hover:bg-zinc-200 transition-colors uppercase italic"
+                            onClick={() => setGameState('idle')}
                         >
-                            <h2 className="text-[12rem] font-black italic text-white drop-shadow-[0_0_60px_rgba(255,255,255,0.8)] mix-blend-overlay">KON!</h2>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            Retry Summoning
+                        </button>
+                    </motion.div>
+                )}
 
                 <div className="w-full flex justify-between items-end">
                     <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                        Devil Mode / Priority: Max
+                        Frame: {bgFrame} / Mode: Cinematic Repro
                     </div>
                     <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-red-600 text-xs font-bold">
                         <span className="text-zinc-500 mr-2">STATE:</span>
@@ -295,10 +338,10 @@ export default function Home() {
                 </div>
             </div>
 
-            {/* Click Trigger for Testing */}
+            {/* Trigger Layer */}
             <div
-                className="absolute inset-0 z-40 opacity-0 cursor-crosshair"
-                onClick={() => gameState === 'locked' && startSummon()}
+                className="absolute inset-0 z-50 opacity-0 cursor-crosshair"
+                onClick={() => isSynced && startSummon()}
             />
         </main>
     );

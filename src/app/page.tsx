@@ -201,8 +201,58 @@ export default function Home() {
         return () => recognition.stop();
     }, [gameState]);
 
+    const playSummonSound = () => {
+        try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+
+            // 1. Whoosh/Wind sound (White Noise + Filter)
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(100, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + 1);
+
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            noiseGain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(masterGain);
+
+            // 2. Low Impact / Growl (Low frequency Oscillator)
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1.5);
+
+            const oscGain = audioCtx.createGain();
+            oscGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
+            osc.connect(oscGain);
+            oscGain.connect(masterGain);
+
+            noise.start();
+            osc.start();
+            noise.stop(audioCtx.currentTime + 2);
+            osc.stop(audioCtx.currentTime + 2);
+        } catch (e) { }
+    };
+
     const startSummon = () => {
         if (['summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
+        playSummonSound();
         setGameState('summoning');
         setTimeout(() => {
             setGameState('closeup');
@@ -212,6 +262,8 @@ export default function Home() {
             }, 800);
         }, 1200);
     };
+
+    const showWebcam = ['idle', 'detecting', 'locked'].includes(gameState);
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
@@ -245,15 +297,24 @@ export default function Home() {
             </div>
 
             {/* Webcam Layer */}
-            <div className="absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl">
-                <Webcam
-                    ref={webcamRef}
-                    audio={false}
-                    className="w-full h-full object-cover grayscale contrast-125 brightness-125"
-                    onUserMedia={() => setCameraPermission(true)}
-                    videoConstraints={{ facingMode: "user" }}
-                />
-            </div>
+            <AnimatePresence>
+                {showWebcam && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.5 } }}
+                        className="absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl"
+                    >
+                        <Webcam
+                            ref={webcamRef}
+                            audio={false}
+                            className="w-full h-full object-cover grayscale contrast-125 brightness-125"
+                            onUserMedia={() => setCameraPermission(true)}
+                            videoConstraints={{ facingMode: "user" }}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* 3D Summoning Layer */}
             <div className="absolute inset-0 z-20 pointer-events-none">

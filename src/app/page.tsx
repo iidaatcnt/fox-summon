@@ -221,64 +221,88 @@ export default function Home() {
             const masterGain = audioCtx.createGain();
             masterGain.connect(audioCtx.destination);
 
-            // 1. Whoosh/Wind sound (White Noise + Filter)
-            const bufferSize = audioCtx.sampleRate * 2;
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            // 1. Ominous Low Growl (Foundation)
+            const baseOsc = audioCtx.createOscillator();
+            baseOsc.type = 'sawtooth';
+            baseOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
+            baseOsc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 2);
 
-            const noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
+            const baseGain = audioCtx.createGain();
+            baseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            baseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
 
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(100, audioCtx.currentTime);
-            filter.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + 1);
+            baseOsc.connect(baseGain);
+            baseGain.connect(masterGain);
+            baseOsc.start();
+            baseOsc.stop(audioCtx.currentTime + 2.5);
 
-            const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0, audioCtx.currentTime);
-            noiseGain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+            // 2. Whoosh Effect (Transition)
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
 
-            noise.connect(filter);
-            filter.connect(noiseGain);
-            noiseGain.connect(masterGain);
+            const whoosh = audioCtx.createBufferSource();
+            whoosh.buffer = noiseBuffer;
+            const whooshFilter = audioCtx.createBiquadFilter();
+            whooshFilter.type = 'bandpass';
+            whooshFilter.frequency.setValueAtTime(100, audioCtx.currentTime);
+            whooshFilter.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.8);
 
-            // 2. Low Impact / Growl (Low frequency Oscillator)
-            const osc = audioCtx.createOscillator();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1.5);
+            const whooshGain = audioCtx.createGain();
+            whooshGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            whooshGain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.1);
+            whooshGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
 
-            const oscGain = audioCtx.createGain();
-            oscGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            oscGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+            whoosh.connect(whooshFilter);
+            whooshFilter.connect(whooshGain);
+            whooshGain.connect(masterGain);
+            whoosh.start();
 
-            osc.connect(oscGain);
-            oscGain.connect(masterGain);
-
-            noise.start();
-            osc.start();
-
-            // 3. Crunchy Bite Sound (Metallic/Bone crunch)
+            // 3. THE BITE (Gabburi!) - Multiple layers
             setTimeout(() => {
-                const biteOsc = audioCtx.createOscillator();
-                biteOsc.type = 'triangle';
-                biteOsc.frequency.setValueAtTime(80, audioCtx.currentTime);
-                biteOsc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.2);
+                const now = audioCtx.currentTime;
 
-                const biteGain = audioCtx.createGain();
-                biteGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                biteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                // A. Heavy Impact (Sub-bass)
+                const impact = audioCtx.createOscillator();
+                impact.type = 'sine';
+                impact.frequency.setValueAtTime(150, now);
+                impact.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+                const impactGain = audioCtx.createGain();
+                impactGain.gain.setValueAtTime(0.8, now);
+                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                impact.connect(impactGain);
+                impactGain.connect(masterGain);
+                impact.start(now);
+                impact.stop(now + 0.5);
 
-                biteOsc.connect(biteGain);
-                biteGain.connect(masterGain);
-                biteOsc.start();
-                biteOsc.stop(audioCtx.currentTime + 0.3);
-            }, 300); // Trigger bite crunch mid-sweep
+                // B. Fleshy Crunch (White Noise with fast decay)
+                const crunch = audioCtx.createBufferSource();
+                crunch.buffer = noiseBuffer;
+                const crunchFilter = audioCtx.createBiquadFilter();
+                crunchFilter.type = 'lowpass';
+                crunchFilter.frequency.setValueAtTime(2000, now);
+                const crunchGain = audioCtx.createGain();
+                crunchGain.gain.setValueAtTime(0.6, now);
+                crunchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                crunch.connect(crunchFilter);
+                crunchFilter.connect(crunchGain);
+                crunchGain.connect(masterGain);
+                crunch.start(now);
+                crunch.stop(now + 0.2);
 
-            noise.stop(audioCtx.currentTime + 2.5);
-            osc.stop(audioCtx.currentTime + 2.5);
+                // C. High Transient (The "Snap")
+                const snap = audioCtx.createOscillator();
+                snap.type = 'square';
+                snap.frequency.setValueAtTime(1200, now);
+                const snapGain = audioCtx.createGain();
+                snapGain.gain.setValueAtTime(0.1, now);
+                snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                snap.connect(snapGain);
+                snapGain.connect(masterGain);
+                snap.start(now);
+                snap.stop(now + 0.1);
+            }, 600); // Synchronized with the Fox sweep peak
+
         } catch (e) { }
     };
 

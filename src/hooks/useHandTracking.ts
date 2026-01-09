@@ -4,6 +4,7 @@ import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 export const useHandTracking = (videoRef: React.RefObject<any>) => {
     const [handLandmarker, setHandLandmarker] = useState<HandLandmarker | null>(null);
     const [isFoxHand, setIsFoxHand] = useState(false);
+    const [handPosition, setHandPosition] = useState<{ x: number, y: number } | null>(null);
 
     useEffect(() => {
         const createHandLandmarker = async () => {
@@ -37,8 +38,14 @@ export const useHandTracking = (videoRef: React.RefObject<any>) => {
                 if (result.landmarks && result.landmarks.length > 0) {
                     const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
                     setIsFoxHand(detected);
+                    if (detected) {
+                        // Use middle tip as reference point for hand position
+                        const pos = result.landmarks[0][12];
+                        setHandPosition({ x: pos.x, y: pos.y });
+                    }
                 } else {
                     setIsFoxHand(false);
+                    setHandPosition(null);
                 }
             }
             requestAnimationFrameId = requestAnimationFrame(predict);
@@ -53,7 +60,7 @@ export const useHandTracking = (videoRef: React.RefObject<any>) => {
         return () => cancelAnimationFrame(requestAnimationFrameId);
     }, [handLandmarker, videoRef]);
 
-    return { isFoxHand };
+    return { isFoxHand, handPosition };
 };
 
 const detectFoxSign = (landmarks: any[]) => {

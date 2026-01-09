@@ -52,30 +52,43 @@ const Particles = ({ count = 20, color = "#ff5e00" }) => {
     );
 };
 
-const FoxScene = ({ state }: { state: string }) => {
-    const tex = useTexture('/fox_demon.png');
+const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
+    const texRight = useTexture('/fox_right.jpg');
+    const texLeft = useTexture('/fox_left.jpg');
+    // If hand is on the right side of screen (handX > 0.5), summon from right (use right texture).
+    // Note: textures are already flipped so texRight is fox looking left (summoned from right),
+    // and texLeft is fox looking right (summoned from left).
+    const isFromRight = handX > 0.5;
+    const tex = isFromRight ? texRight : texLeft;
+
     const meshRef = useRef<THREE.Mesh>(null);
     const [opac, setOpac] = useState(0);
     const [scaleFactor, setScaleFactor] = useState(0.1);
     const [posX, setPosX] = useState(10);
+    const [posY, setPosY] = useState(-5);
 
     useEffect(() => {
         let animId: number;
         const animate = () => {
             if (!meshRef.current) return;
             if (state === 'summoning') {
-                setPosX(prev => THREE.MathUtils.lerp(prev, 0, 0.1));
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 2.5, 0.08));
+                const targetX = 0;
+                const startX = isFromRight ? 8 : -8;
+                setPosX(prev => THREE.MathUtils.lerp(prev === 10 || prev === -10 ? startX : prev, targetX, 0.15));
+                setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.15));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 4, 0.1));
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
             } else if (state === 'closeup') {
                 setPosX(0);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 15, 0.05));
+                setPosY(0);
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.08));
                 setOpac(1);
             } else if (state === 'evaporating') {
-                setScaleFactor(prev => prev + 0.3);
-                setOpac(prev => Math.max(0, prev - 0.02));
+                setScaleFactor(prev => prev + 0.5);
+                setOpac(prev => Math.max(0, prev - 0.05));
             } else {
-                setPosX(10);
+                setPosX(isFromRight ? 10 : -10);
+                setPosY(-5);
                 setScaleFactor(0.1);
                 setOpac(0);
             }
@@ -83,15 +96,15 @@ const FoxScene = ({ state }: { state: string }) => {
         };
         animate();
         return () => cancelAnimationFrame(animId);
-    }, [state]);
+    }, [state, isFromRight]);
 
     return (
         <group>
             <ParallaxGroup intensity={2}>
                 <Particles count={50} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[posX, -0.5, -5]} scale={[scaleFactor, scaleFactor, 1]}>
-                <planeGeometry args={[1, 1]} />
+            <mesh ref={meshRef} position={[posX, posY, -5]} scale={[scaleFactor, scaleFactor, 1]}>
+                <planeGeometry args={[1.5, 1.5]} />
                 <meshBasicMaterial
                     map={tex}
                     transparent
@@ -106,14 +119,14 @@ const FoxScene = ({ state }: { state: string }) => {
 
 const SummonEffects = ({ state }: { state: string }) => {
     if (state !== 'summoning' && state !== 'closeup') return null;
-    return <CameraShake maxPitch={0.2} maxYaw={0.2} intensity={1} />;
+    return <CameraShake maxPitch={0.5} maxYaw={0.5} intensity={2} />;
 };
 
 export default function Home() {
     const [gameState, setGameState] = useState('idle');
     const [cameraPermission, setCameraPermission] = useState(false);
     const webcamRef = useRef<any>(null);
-    const { isFoxHand } = useHandTracking(webcamRef);
+    const { isFoxHand, handPosition } = useHandTracking(webcamRef);
 
     const playBeep = (freq = 880, length = 0.15) => {
         try {
@@ -162,40 +175,53 @@ export default function Home() {
     }, [gameState]);
 
     const startSummon = () => {
+        if (gameState === 'summoning' || gameState === 'closeup' || gameState === 'evaporating') return;
         setGameState('summoning');
         setTimeout(() => {
             setGameState('closeup');
             setTimeout(() => {
                 setGameState('evaporating');
                 setTimeout(() => setGameState('idle'), 1500);
-            }, 1500);
-        }, 1000);
+            }, 1000);
+        }, 800);
     };
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
-            <div className="absolute inset-0 z-0 bg-[#0a0a0c]">
+            {/* Background Layer: City with Leech Monster */}
+            <div className="absolute inset-0 z-0">
+                <img
+                    src="/city_bg.png"
+                    alt="City Background"
+                    className="w-full h-full object-cover opacity-60"
+                />
+                <div className="absolute inset-0 bg-black/30" />
+            </div>
+
+            {/* Webcam Layer */}
+            <div className="absolute top-4 right-4 w-64 h-48 z-10 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl">
                 <Webcam
                     ref={webcamRef}
                     audio={false}
-                    className="w-full h-full object-cover opacity-70 grayscale contrast-125"
+                    className="w-full h-full object-cover grayscale contrast-125"
                     onUserMedia={() => setCameraPermission(true)}
                     videoConstraints={{ facingMode: "user" }}
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-1 bg-[length:100%_2px,3px_100%] pointer-events-none" />
             </div>
 
-            <div className="absolute inset-0 z-10 pointer-events-none">
+            {/* 3D Summoning Layer */}
+            <div className="absolute inset-0 z-20 pointer-events-none">
                 <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
                     <ambientLight intensity={1.5} />
                     <Suspense fallback={null}>
-                        <FoxScene state={gameState} />
+                        <FoxScene state={gameState} handX={handPosition?.x ?? 0.5} />
                         <SummonEffects state={gameState} />
                     </Suspense>
                 </Canvas>
             </div>
 
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-between p-8 pointer-events-none">
+            {/* UI Overlay */}
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-8 pointer-events-none">
                 <div className="w-full flex justify-between items-start">
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -206,40 +232,54 @@ export default function Home() {
                             System Active: Detection On
                         </div>
                     </div>
-                    <div className="p-2 border border-white/10 rounded-full bg-black/40 backdrop-blur-sm shadow-xl">
-                        <Mic className={`w-6 h-6 ${gameState === 'locked' ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`} />
-                    </div>
                 </div>
 
                 <AnimatePresence>
                     {gameState === 'locked' && (
-                        <motion.div
-                            initial={{ scale: 2, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.5, opacity: 0 }}
-                            className="relative w-72 h-72 flex items-center justify-center"
-                        >
-                            <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-red-600" />
-                            <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-red-600" />
-                            <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-red-600" />
-                            <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-red-600" />
-                            <div className="text-center">
-                                <p className="text-red-600 font-black text-xs tracking-widest uppercase mb-1">Target Locked</p>
-                                <p className="text-white font-bold text-2xl tracking-tighter">コン！と言え</p>
-                            </div>
-                        </motion.div>
+                        <div className="flex flex-col items-center gap-8">
+                            {/* Dialogue Message From Monster */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="bg-black/80 backdrop-blur-md border-l-4 border-red-600 p-6 rounded-r-xl max-w-sm shadow-2xl"
+                            >
+                                <p className="text-red-500 text-[10px] font-mono uppercase tracking-[0.3em] mb-2">Internal Signal</p>
+                                <p className="text-white text-xl font-bold leading-relaxed italic">
+                                    「準備はいいよ。いつでも喚びな…。」
+                                </p>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ scale: 2, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.5, opacity: 0 }}
+                                className="relative w-64 h-64 flex items-center justify-center"
+                            >
+                                <div className="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-red-600" />
+                                <div className="absolute top-0 right-0 w-12 h-12 border-t-2 border-r-2 border-red-600" />
+                                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-2 border-l-2 border-red-600" />
+                                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-red-600" />
+                                <div className="text-center">
+                                    <p className="text-red-500 font-bold text-3xl tracking-tighter drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]">
+                                        コン！
+                                    </p>
+                                    <p className="text-white/50 text-[10px] mt-2 font-mono uppercase">Voice Trigger Ready</p>
+                                </div>
+                            </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
 
                 <AnimatePresence>
                     {(gameState === 'summoning' || gameState === 'closeup') && (
                         <motion.div
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1.2, opacity: 1 }}
-                            exit={{ scale: 2, opacity: 0, filter: 'blur(20px)' }}
-                            className="absolute inset-0 flex items-center justify-center bg-red-600/10"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1.5, opacity: 1 }}
+                            exit={{ scale: 3, opacity: 0, filter: 'blur(20px)' }}
+                            className="absolute inset-0 flex items-center justify-center"
                         >
-                            <h2 className="text-9xl font-black italic text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.8)]">KON!</h2>
+                            <h2 className="text-[12rem] font-black italic text-white drop-shadow-[0_0_60px_rgba(255,255,255,0.8)] mix-blend-overlay">KON!</h2>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -255,8 +295,9 @@ export default function Home() {
                 </div>
             </div>
 
+            {/* Click Trigger for Testing */}
             <div
-                className="absolute inset-0 z-30 opacity-0 cursor-crosshair"
+                className="absolute inset-0 z-40 opacity-0 cursor-crosshair"
                 onClick={() => gameState === 'locked' && startSummon()}
             />
         </main>

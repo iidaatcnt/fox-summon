@@ -34,29 +34,37 @@ export const useHandTracking = (videoRef: React.RefObject<any>, dependency?: any
             if (!video) return;
 
             const predict = async () => {
-                if (video.readyState >= 2) {
-                    const startTimeMs = performance.now();
-                    const result = handLandmarker.detectForVideo(video, startTimeMs);
+                if (!handLandmarker) return;
 
-                    if (result.landmarks && result.landmarks.length > 0) {
-                        const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
-                        setIsFoxHand(detected);
-                        if (detected) {
-                            const pos = result.landmarks[0][12];
-                            setHandPosition({ x: pos.x, y: pos.y });
+                try {
+                    if (video.readyState >= 2) {
+                        const startTimeMs = performance.now();
+                        const result = handLandmarker.detectForVideo(video, startTimeMs);
+
+                        if (result.landmarks && result.landmarks.length > 0) {
+                            const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
+                            setIsFoxHand(detected);
+                            if (detected) {
+                                // Tip of middle finger (index 12)
+                                const pos = result.landmarks[0][12];
+                                setHandPosition({ x: pos.x, y: pos.y });
+                            }
+                        } else {
+                            setIsFoxHand(false);
+                            setHandPosition(null);
                         }
-                    } else {
-                        setIsFoxHand(false);
-                        setHandPosition(null);
                     }
+                } catch (err) {
+                    console.error("Tracking Error:", err);
                 }
+
                 requestAnimationFrameId = requestAnimationFrame(predict);
             };
 
             if (video.readyState >= 2) {
                 predict();
             } else {
-                video.onloadeddata = predict;
+                video.onloadeddata = () => predict();
             }
         };
 
@@ -85,12 +93,13 @@ const detectFoxSign = (landmarks: any[]) => {
     const dist = (p1: any, p2: any) => Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
 
     // Thumb meets Middle and Ring tips
-    const threshold = 0.08;
+    const threshold = 0.15; // Relaxed from 0.08
     const isClosed = dist(thumbTip, middleTip) < threshold && dist(thumbTip, ringTip) < threshold;
 
     // Index and Pinky are straight up
-    const indexUp = indexTip.y < indexPip.y;
-    const pinkyUp = pinkyTip.y < pinkyPip.y;
+    // Higher up means smaller y value in normalized coordinates
+    const indexUp = indexTip.y < indexPip.y - 0.05;
+    const pinkyUp = pinkyTip.y < pinkyPip.y - 0.05;
 
     return isClosed && indexUp && pinkyUp;
 };

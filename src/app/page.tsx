@@ -128,7 +128,7 @@ export default function Home() {
     const [bgFrame, setBgFrame] = useState(0);
     const [cameraPermission, setCameraPermission] = useState(false);
     const webcamRef = useRef<any>(null);
-    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState);
+    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission);
 
     // Sync check for the hand silhouette
     const [isSynced, setIsSynced] = useState(false);
@@ -327,13 +327,18 @@ export default function Home() {
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
             {/* Ultra Background: Massive Fox Backdrop during Summoning */}
+            {/* Ultra Background: Massive Fox Backdrop during Summoning */}
             <AnimatePresence>
                 {isBiting && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 0.8, scale: 1.1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-10 pointer-events-none"
+                        initial={{ opacity: 0, scale: 0.05, x: "-50%", y: "-50%", left: "50%", top: "50%" }}
+                        animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                        exit={{ opacity: 0, scale: 2, x: "-50%", y: "-50%" }}
+                        transition={{
+                            duration: 0.5,
+                            ease: [0.16, 1, 0.3, 1]
+                        }}
+                        className="absolute z-10 pointer-events-none w-full h-full origin-center"
                     >
                         <img
                             src="/fox_right.jpg"
@@ -343,7 +348,7 @@ export default function Home() {
                         {/* Dramatic Red Flash Overlay */}
                         <motion.div
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: [0, 0.6, 0] }}
+                            animate={{ opacity: [0, 0.8, 0] }}
                             transition={{ duration: 0.5 }}
                             className="absolute inset-0 bg-red-600 mix-blend-overlay"
                         />
@@ -411,8 +416,20 @@ export default function Home() {
                             <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-red-500/60" />
 
                             <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">
-                                MONITORING_ON
+                                {isFoxHand ? "HAND_READY" : "SCANNING_HAND"}
                             </div>
+
+                            {/* Tracking Dot Feedback */}
+                            {handPosition && (
+                                <div
+                                    className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#f00] transition-all duration-75"
+                                    style={{
+                                        left: `${handPosition.x * 100}%`,
+                                        top: `${handPosition.y * 100}%`,
+                                        transform: 'translate(-50%, -50%)'
+                                    }}
+                                />
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -434,14 +451,25 @@ export default function Home() {
                 {(gameState === 'detecting' || gameState === 'locked') && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: isSynced ? 0.3 : 0.6, scale: 1 }}
+                        animate={{
+                            opacity: isSynced ? 0.3 : 0.6,
+                            scale: isFoxHand ? 1 : 0.95,
+                        }}
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none"
                     >
-                        <div className={`w-96 h-96 transition-colors duration-300 ${isSynced ? 'text-red-600' : 'text-white'}`}>
+                        <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-red-600 drop-shadow-[0_0_30px_rgba(255,0,0,0.8)]' : 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]'}`}>
+                            {/* Inner detection glow */}
+                            {isFoxHand && (
+                                <motion.div
+                                    className="absolute inset-0 bg-red-500/10 blur-3xl rounded-full"
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                />
+                            )}
                             <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
                                 <path d="M20,80 Q30,40 25,20 L35,45 Q50,40 65,45 L75,20 Q70,40 80,80 Z" />
-                                <circle cx="50" cy="55" r="5" className="fill-red-600 animate-pulse" />
+                                <circle cx="50" cy="55" r="5" className={`animate-pulse ${isSynced ? 'fill-red-400' : 'fill-red-600'}`} />
                             </svg>
                         </div>
                     </motion.div>

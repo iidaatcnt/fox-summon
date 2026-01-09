@@ -141,11 +141,14 @@ export default function Home() {
         setIsSynced(dist < 0.18);
     }, [isFoxHand, handPosition]);
 
-    // Flip-book animation effect
+    // Slow swaying background (yurari-yurari) and occasional frame swap
     useEffect(() => {
         const interval = setInterval(() => {
-            setBgFrame(prev => (prev + 1) % 2);
-        }, 120);
+            // Randomly swap image every few seconds instead of rapid flickering
+            if (Math.random() > 0.7) {
+                setBgFrame(prev => (prev + 1) % 2);
+            }
+        }, 3000);
         return () => clearInterval(interval);
     }, []);
 
@@ -214,11 +217,21 @@ export default function Home() {
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
             {/* Background Layer: Animated Flip-book */}
             <div className="absolute inset-0 z-0">
-                <img
+                <motion.img
                     src={gameState === 'done' ? "/city_bg.png" : (bgFrame === 0 ? "/city_bg.png" : "/city_bg2.png")}
                     alt="City Background"
                     className={`w-full h-full object-cover transition-none ${gameState === 'done' ? 'grayscale opacity-80 brightness-75' : 'opacity-70'}`}
                     style={gameState === 'done' ? { filter: 'sepia(1) saturate(5) hue-rotate(-50deg)' } : {}}
+                    animate={gameState !== 'done' ? {
+                        scale: [1, 1.05, 1],
+                        x: [0, 20, -20, 0],
+                        y: [0, 10, -10, 0],
+                    } : {}}
+                    transition={{
+                        duration: 20,
+                        repeat: Infinity,
+                        ease: "linear"
+                    }}
                 />
 
                 {/* Damage Overlay when done */}

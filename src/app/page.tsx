@@ -169,13 +169,12 @@ export default function Home() {
     };
 
     useEffect(() => {
-        if (['summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
+        // Once locked or summoning, we don't fall back to idle via hand tracking
+        if (['locked', 'summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
 
         if (isSynced) {
-            if (gameState !== 'locked') {
-                setGameState('locked');
-                playBeep(440, 0.2);
-            }
+            setGameState('locked');
+            playBeep(440, 0.2);
         } else if (isFoxHand) {
             setGameState('detecting');
         } else {
@@ -263,7 +262,7 @@ export default function Home() {
         }, 1200);
     };
 
-    const showWebcam = ['idle', 'detecting', 'locked'].includes(gameState);
+    const showWebcam = ['idle', 'detecting'].includes(gameState);
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">

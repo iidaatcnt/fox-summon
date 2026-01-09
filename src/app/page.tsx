@@ -69,20 +69,20 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
         const animate = () => {
             if (!meshRef.current) return;
             if (state === 'summoning') {
-                const targetX = isFromRight ? -35 : 35;
-                const startX = isFromRight ? 30 : -30;
-                // High-speed snap sweep across the entire screen
+                const targetX = isFromRight ? -30 : 30;
+                const startX = isFromRight ? 25 : -25;
+                // Slightly slower sweep to make the fox head recognizable
                 setPosX(prev => {
-                    const next = THREE.MathUtils.lerp(prev === 15 || prev === -15 ? startX : prev, targetX, 0.12);
+                    const next = THREE.MathUtils.lerp(prev === 15 || prev === -15 ? startX : prev, targetX, 0.08);
                     return next;
                 });
-                setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.2));
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 45, 0.08)); // Fill screen completely
+                setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.15));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 40, 0.06)); // Still massive but builds up
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.2));
             } else if (state === 'closeup') {
                 setPosX(0);
                 setPosY(0);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 35, 0.15));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 30, 0.1));
                 setOpac(1);
             } else if (state === 'evaporating') {
                 setScaleFactor(prev => prev + 1.2);
@@ -286,13 +286,14 @@ export default function Home() {
         if (['summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
         playSummonSound();
         setGameState('summoning');
+        // Give more time in 'summoning' and 'closeup' to see the fox clearly
         setTimeout(() => {
             setGameState('closeup');
             setTimeout(() => {
                 setGameState('evaporating');
                 setTimeout(() => setGameState('done'), 1000);
-            }, 800);
-        }, 1200);
+            }, 1000); // 1.0s closeup to see the face
+        }, 1500); // 1.5s sweep time
     };
 
     const showWebcam = ['idle', 'detecting'].includes(gameState);
@@ -305,15 +306,22 @@ export default function Home() {
             <AnimatePresence>
                 {isBiting && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 0.4, scale: 1.2 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 0.8, scale: 1.1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-[-1] pointer-events-none"
+                        className="absolute inset-0 z-10 pointer-events-none"
                     >
                         <img
                             src="/fox_right.jpg"
-                            className="w-full h-full object-cover blur-sm brightness-50"
+                            className="w-full h-full object-cover brightness-75 shadow-[0_0_100px_rgba(255,0,0,0.5)]"
                             alt="Background Fox"
+                        />
+                        {/* Dramatic Red Flash Overlay */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: [0, 0.6, 0] }}
+                            transition={{ duration: 0.5 }}
+                            className="absolute inset-0 bg-red-600 mix-blend-overlay"
                         />
                     </motion.div>
                 )}

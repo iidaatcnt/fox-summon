@@ -106,7 +106,7 @@ const FoxScene = ({ state }: { state: string }) => {
 
 const SummonEffects = ({ state }: { state: string }) => {
     if (state !== 'summoning' && state !== 'closeup') return null;
-    return <CameraShake maxY={0.2} maxYYaw={0.2} intensity={1} />;
+    return <CameraShake maxPitch={0.2} maxYaw={0.2} intensity={1} />;
 };
 
 export default function Home() {

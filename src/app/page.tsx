@@ -156,6 +156,17 @@ export default function Home() {
         return () => clearInterval(interval);
     }, []);
 
+    // Keyboard support: Space to retry after mission complete
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.code === 'Space' && gameState === 'done') {
+                setGameState('idle');
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [gameState]);
+
     const playBeep = (freq = 880, length = 0.15) => {
         try {
             const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -286,8 +297,28 @@ export default function Home() {
 
     const showWebcam = ['idle', 'detecting'].includes(gameState);
 
+    const isBiting = ['summoning', 'closeup', 'evaporating'].includes(gameState);
+
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
+            {/* Ultra Background: Massive Fox Backdrop during Summoning */}
+            <AnimatePresence>
+                {isBiting && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 0.4, scale: 1.2 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[-1] pointer-events-none"
+                    >
+                        <img
+                            src="/fox_right.jpg"
+                            className="w-full h-full object-cover blur-sm brightness-50"
+                            alt="Background Fox"
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Background Layer: Animated Flip-book */}
             <div className="absolute inset-0 z-0">
                 <motion.img

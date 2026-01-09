@@ -69,16 +69,20 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
         const animate = () => {
             if (!meshRef.current) return;
             if (state === 'summoning') {
-                const targetX = isFromRight ? -25 : 25;
-                const startX = isFromRight ? 20 : -20;
-                setPosX(prev => THREE.MathUtils.lerp(prev === 15 || prev === -15 ? startX : prev, targetX, 0.08));
-                setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.15));
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 35, 0.05));
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.15));
+                const targetX = isFromRight ? -35 : 35;
+                const startX = isFromRight ? 30 : -30;
+                // High-speed snap sweep across the entire screen
+                setPosX(prev => {
+                    const next = THREE.MathUtils.lerp(prev === 15 || prev === -15 ? startX : prev, targetX, 0.12);
+                    return next;
+                });
+                setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.2));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 45, 0.08)); // Fill screen completely
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.2));
             } else if (state === 'closeup') {
                 setPosX(0);
                 setPosY(0);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 25, 0.1));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 35, 0.15));
                 setOpac(1);
             } else if (state === 'evaporating') {
                 setScaleFactor(prev => prev + 1.2);
@@ -244,8 +248,26 @@ export default function Home() {
 
             noise.start();
             osc.start();
-            noise.stop(audioCtx.currentTime + 2);
-            osc.stop(audioCtx.currentTime + 2);
+
+            // 3. Crunchy Bite Sound (Metallic/Bone crunch)
+            setTimeout(() => {
+                const biteOsc = audioCtx.createOscillator();
+                biteOsc.type = 'triangle';
+                biteOsc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                biteOsc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.2);
+
+                const biteGain = audioCtx.createGain();
+                biteGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                biteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+                biteOsc.connect(biteGain);
+                biteGain.connect(masterGain);
+                biteOsc.start();
+                biteOsc.stop(audioCtx.currentTime + 0.3);
+            }, 300); // Trigger bite crunch mid-sweep
+
+            noise.stop(audioCtx.currentTime + 2.5);
+            osc.stop(audioCtx.currentTime + 2.5);
         } catch (e) { }
     };
 

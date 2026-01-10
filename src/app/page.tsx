@@ -191,7 +191,7 @@ export default function Home() {
 
     useEffect(() => {
         // Once locked or summoning, we don't fall back to idle via hand tracking
-        if (['locked', 'summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
+        if (['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
 
         if (isSynced) {
             setGameState('locked');

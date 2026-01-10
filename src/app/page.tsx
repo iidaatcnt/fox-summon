@@ -77,20 +77,20 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
             } else if (state === 'summoning') {
                 setActiveTex(tex02);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 40, 0.1));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.15)); // Visible but aggressive
                 setOpac(1);
             } else if (state === 'closeup') {
                 setActiveTex(tex02);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 35, 0.05));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 16, 0.05));
                 setOpac(1);
             } else if (state === 'cooloff') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 20, 0.05));
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 10, 0.05)); // Sitting in the alley
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.05));
             } else if (state === 'evaporating') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => prev + 0.1);
-                setOpac(prev => Math.max(0, prev - 0.02));
+                setScaleFactor(prev => prev + 0.02);
+                setOpac(prev => Math.max(0, prev - 0.005)); // Much slower fade (approx 3-4 seconds)
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -331,8 +331,9 @@ export default function Home() {
                 // 3. Final Evaporation with smoke/fade
                 setTimeout(() => {
                     setGameState('evaporating');
-                    setTimeout(() => setGameState('done'), 2000);
-                }, 3000); // Wait for excitement to cool down (3 seconds)
+                    // Much slower fade (5 seconds)
+                    setTimeout(() => setGameState('done'), 5000);
+                }, 4000); // Show image 03 for 4 seconds to let the excitement cool down
             }, 2000);
         }, 1200);
     };
@@ -349,8 +350,8 @@ export default function Home() {
                 {isBiting && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%", left: "50%", top: "50%" }}
-                        animate={{ opacity: 1, scale: 2.5, x: "-50%", y: "-50%" }}
-                        exit={{ opacity: 0, scale: 5 }}
+                        animate={{ opacity: 1, scale: 1.5, x: "-50%", y: "-50%" }} // Reduced from 2.5 to be visible
+                        exit={{ opacity: 0, scale: 2 }}
                         transition={{
                             duration: 0.8,
                             ease: [0.22, 1, 0.36, 1]

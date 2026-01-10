@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🦊 FOX SUMMON - キツネの悪魔召喚アプリ
 
-## Getting Started
+> 「チェンソーマン」に登場するキツネの悪魔を召喚して、怪物を退治しよう！
 
-First, run the development server:
+![Fox Summon](https://img.shields.io/badge/Version-1.2.0-red)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## 🎮 遊び方
+
+### 準備するもの
+- パソコン（Chrome推奨）
+- Webカメラ
+- マイク
+
+### ステップ
+
+1. **アプリを開く**
+   - ブラウザでアプリにアクセスします
+   - カメラとマイクの使用を許可してください
+
+2. **怪物が現れる！**
+   - 画面に巨大な怪物が街を破壊しているシーンが表示されます
+   - 右上の小さな画面にあなたの姿が映ります
+
+3. **キツネのハンドサインを作る**
+   - 手で「キツネ」の形を作ります（親指と人差し指で輪を作り、残りの指を立てる）
+   - 画面中央のシルエットに合わせてください
+   - 認識されると、カメラが消えてスタンバイ状態になります
+
+4. **「こん！」と叫ぶ**
+   - 準備ができたら、大きな声で「こん！」と叫びましょう
+   - キツネの悪魔が現れて怪物を一撃で倒します！
+
+5. **勝利を楽しむ**
+   - 怪物が倒された街と歓喜する人々が表示されます
+   - その後、キツネが静かに佇み、煙と共に消えていきます
+
+6. **もう一度遊ぶ**
+   - 「Retry Summoning」ボタンまたはスペースキーで最初から遊べます
+
+## 📸 スクリーンショット
+
+### 怪物襲来シーン
+怪物が街を破壊しています。急いでキツネを召喚しましょう！
+
+### 召喚スタンバイ
+ハンドサインが認識されると、いつでも「こん！」と叫べる状態になります。
+
+### 攻撃！
+キツネの悪魔が巨大な牙で怪物を一撃で仕留めます。
+
+### 勝利
+怪物は倒され、街に平和が戻りました。
+
+### エンディング
+キツネは静かに佇み、煙と共に姿を消していきます...
+
+## ⚠️ 注意事項
+
+- **ブラウザ**: Google Chrome を推奨します
+- **明るさ**: 明るい場所でハンドサインが認識されやすくなります
+- **マイク**: 静かな環境で「こん！」がより認識されやすくなります
+- **年齢**: 怪物の画像が少し怖いかもしれません。小さなお子様は保護者と一緒に遊んでください
+
+## 🛠️ インストール（開発者向け）
 
 ```bash
+# リポジトリをクローン
+git clone https://github.com/iidaatcnt/fox-summon.git
+
+# ディレクトリに移動
+cd fox-summon
+
+# 依存関係をインストール
+npm install
+
+# 開発サーバーを起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで `http://localhost:3000` を開いてください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🌐 デプロイ版
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+以下のURLでオンライン版をお試しいただけます：
 
-## Learn More
+🔗 **[Fox Summon on Vercel](https://fox-summon.vercel.app/)**
 
-To learn more about Next.js, take a look at the following resources:
+## 📱 対応環境
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| デバイス | 対応状況 |
+|----------|----------|
+| PC (Chrome) | ⭐ 最適 |
+| PC (Edge) | ✅ 対応 |
+| PC (Firefox) | ⚠️ 一部機能制限 |
+| PC (Safari) | ⚠️ 一部機能制限 |
+| スマートフォン | ❌ 非対応 |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+※ハンドトラッキングと音声認識にはPCブラウザが必要です
 
-## Deploy on Vercel
+## 🎨 使用素材について
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+このアプリで使用している画像は、教育・エンターテイメント目的で作成されたものです。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 ライセンス
+
+MIT License - 自由に使用・改変できます。
+
+## 👤 作者
+
+**iidaatcnt**
+
+## 🙏 謝辞
+
+- 「チェンソーマン」（藤本タツキ先生）からインスピレーションを受けました
+- MediaPipe チームによるハンドトラッキング技術
+- React Three Fiber コミュニティ
+
+---
+
+**楽しんでください！ 🦊✨**

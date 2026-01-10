@@ -348,7 +348,8 @@ export default function Home() {
 
     const showWebcam = ['idle', 'detecting'].includes(gameState) && webcamEnabled;
 
-    const isBiting = ['summoning', 'closeup', 'victory', 'cooloff', 'evaporating'].includes(gameState);
+    const isBiting = ['summoning', 'closeup'].includes(gameState);
+    const isFoxEnding = ['cooloff', 'evaporating'].includes(gameState);
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
@@ -358,7 +359,7 @@ export default function Home() {
                 {isBiting && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%", left: "50%", top: "50%" }}
-                        animate={{ opacity: 1, scale: 1.5, x: "-50%", y: "-50%" }} // Reduced from 2.5 to be visible
+                        animate={{ opacity: 1, scale: 1.5, x: "-50%", y: "-50%" }}
                         exit={{ opacity: 0, scale: 2 }}
                         transition={{
                             duration: 0.8,
@@ -367,9 +368,9 @@ export default function Home() {
                         className="absolute z-50 pointer-events-none w-full h-full origin-center"
                     >
                         <img
-                            src={gameState === 'cooloff' || gameState === 'evaporating' ? "/fox03.png" : "/fox02.png"}
+                            src="/fox02.png"
                             className="w-full h-full object-cover brightness-90 shadow-[0_0_100px_rgba(255,0,0,0.5)]"
-                            alt="Background Fox"
+                            alt="Attack Fox"
                         />
                         {/* Dramatic Red Flash Overlay */}
                         <motion.div

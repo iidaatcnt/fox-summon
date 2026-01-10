@@ -69,20 +69,22 @@ const FoxScene = ({ state }: { state: string }) => {
 
             if (state === 'locked') {
                 setActiveTex(tex01);
-                setScaleFactor(13); // Fills screen as standby image
+                setScaleFactor(13);
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.15));
             } else if (state === 'summoning' || state === 'closeup') {
                 setActiveTex(tex02);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.2)); // Aggressive zoom
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.2));
                 setOpac(1);
+            } else if (state === 'victory') {
+                setOpac(0); // Hide fox to show the dead_bug background clearly
             } else if (state === 'cooloff') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 11, 0.1)); // Sitting fox
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 11, 0.1));
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
             } else if (state === 'evaporating') {
                 setActiveTex(tex03);
                 setScaleFactor(prev => prev + 0.01);
-                setOpac(prev => Math.max(0, prev - 0.005)); // Slow fade
+                setOpac(prev => Math.max(0, prev - 0.005));
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -318,7 +320,7 @@ export default function Home() {
     };
 
     const startSummon = () => {
-        if (['summoning', 'closeup', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
+        if (['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
         playSummonSound();
         setGameState('summoning');
 
@@ -326,23 +328,27 @@ export default function Home() {
         setTimeout(() => {
             setGameState('closeup');
 
-            // 2. Transition to Cool-off (fox03)
+            // 2. Victory Announcement (dead_bug.jpg only)
             setTimeout(() => {
-                setGameState('cooloff');
+                setGameState('victory');
 
-                // 3. Final Evaporation with smoke/fade
+                // 3. Sitting Fox Appearing (fox03)
                 setTimeout(() => {
-                    setGameState('evaporating');
-                    // Much slower fade (5 seconds)
-                    setTimeout(() => setGameState('done'), 5000);
-                }, 4000); // Show image 03 for 4 seconds to let the excitement cool down
-            }, 2000);
+                    setGameState('cooloff');
+
+                    // 4. Final slow evaporation
+                    setTimeout(() => {
+                        setGameState('evaporating');
+                        setTimeout(() => setGameState('done'), 5000);
+                    }, 4000);
+                }, 3000); // Display victory scene for 3 seconds
+            }, 1500); // Attack duration
         }, 1200);
     };
 
     const showWebcam = ['idle', 'detecting'].includes(gameState) && webcamEnabled;
 
-    const isBiting = ['summoning', 'closeup', 'cooloff', 'evaporating'].includes(gameState);
+    const isBiting = ['summoning', 'closeup', 'victory', 'cooloff', 'evaporating'].includes(gameState);
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
@@ -379,10 +385,10 @@ export default function Home() {
             {/* Background Layer (The Story Canvas) */}
             <div className="absolute inset-0 z-0 bg-zinc-900">
                 <motion.img
-                    src={['summoning', 'closeup', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
+                    src={['victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
                     alt="Story Background"
                     className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-60' : 'opacity-80'}`}
-                    animate={['idle', 'detecting'].includes(gameState) ? {
+                    animate={['idle', 'detecting', 'locked', 'summoning', 'closeup'].includes(gameState) ? {
                         scale: [1, 1.05, 1],
                         x: [0, 8, -8, 0],
                         y: [0, 5, -5, 0],

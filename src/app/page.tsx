@@ -377,19 +377,18 @@ export default function Home() {
             {/* Background Layer: Animated Flip-book */}
             <div className="absolute inset-0 z-0">
                 <motion.img
-                    src={gameState === 'done' ? "/city_bg.png" : (bgFrame === 0 ? "/city_bg.png" : "/city_bg2.png")}
+                    src={gameState === 'done' || gameState === 'evaporating' ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
                     alt="City Background"
                     className={`w-full h-full object-cover transition-none ${gameState === 'done' ? 'grayscale opacity-80 brightness-75' : 'opacity-70'}`}
-                    style={gameState === 'done' ? { filter: 'sepia(1) saturate(5) hue-rotate(-50deg)' } : {}}
                     animate={gameState !== 'done' ? {
                         scale: [1, 1.05, 1],
-                        x: [0, 20, -20, 0],
-                        y: [0, 10, -10, 0],
+                        x: [0, 5, -5, 0],
+                        y: [0, 5, -5, 0],
                     } : {}}
                     transition={{
-                        duration: 20,
+                        duration: 10,
                         repeat: Infinity,
-                        ease: "linear"
+                        ease: "easeInOut"
                     }}
                 />
 

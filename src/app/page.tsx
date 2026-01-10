@@ -52,7 +52,7 @@ const Particles = ({ count = 20, color = "#ff5e00" }) => {
     );
 };
 
-const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
+const FoxScene = ({ state }: { state: string }) => {
     const tex01 = useTexture('/fox01.png');
     const tex02 = useTexture('/fox02.png');
     const tex03 = useTexture('/fox03.png');
@@ -60,8 +60,6 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const [opac, setOpac] = useState(0);
     const [scaleFactor, setScaleFactor] = useState(1);
-    const [posX, setPosX] = useState(0);
-    const [posY, setPosY] = useState(0);
     const [activeTex, setActiveTex] = useState<THREE.Texture>(tex01);
 
     useEffect(() => {
@@ -71,26 +69,20 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
 
             if (state === 'locked') {
                 setActiveTex(tex01);
-                setPosX(0);
-                setPosY(0);
-                setScaleFactor(15); // Large backdrop
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
-            } else if (state === 'summoning') {
+                setScaleFactor(13); // Fills screen as standby image
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.15));
+            } else if (state === 'summoning' || state === 'closeup') {
                 setActiveTex(tex02);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.15)); // Visible but aggressive
-                setOpac(1);
-            } else if (state === 'closeup') {
-                setActiveTex(tex02);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 16, 0.05));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.2)); // Aggressive zoom
                 setOpac(1);
             } else if (state === 'cooloff') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 10, 0.05)); // Sitting in the alley
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.05));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 11, 0.1)); // Sitting fox
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
             } else if (state === 'evaporating') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => prev + 0.02);
-                setOpac(prev => Math.max(0, prev - 0.005)); // Much slower fade (approx 3-4 seconds)
+                setScaleFactor(prev => prev + 0.01);
+                setOpac(prev => Math.max(0, prev - 0.005)); // Slow fade
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -103,10 +95,10 @@ const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
 
     return (
         <group>
-            <ParallaxGroup intensity={state === 'locked' ? 0.5 : 2}>
-                <Particles count={state === 'evaporating' ? 150 : 30} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
+            <ParallaxGroup intensity={state === 'locked' ? 0.3 : 1.5}>
+                <Particles count={state === 'evaporating' ? 180 : 30} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[posX, posY, -2]} scale={[scaleFactor, scaleFactor, 1]}>
+            <mesh ref={meshRef} position={[0, 0, -2]} scale={[scaleFactor, scaleFactor, 1]}>
                 <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
                     map={activeTex}
@@ -129,8 +121,18 @@ export default function Home() {
     const [gameState, setGameState] = useState('idle');
     const [bgFrame, setBgFrame] = useState(0);
     const [cameraPermission, setCameraPermission] = useState(false);
+    const [webcamEnabled, setWebcamEnabled] = useState(false);
     const webcamRef = useRef<any>(null);
-    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission);
+
+    // Initial delay for camera to "boot up"
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setWebcamEnabled(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission + webcamEnabled);
 
     // Sync check for the hand silhouette
     const [isSynced, setIsSynced] = useState(false);
@@ -338,7 +340,7 @@ export default function Home() {
         }, 1200);
     };
 
-    const showWebcam = ['idle', 'detecting'].includes(gameState);
+    const showWebcam = ['idle', 'detecting'].includes(gameState) && webcamEnabled;
 
     const isBiting = ['summoning', 'closeup', 'cooloff', 'evaporating'].includes(gameState);
 
@@ -374,19 +376,19 @@ export default function Home() {
                 )}
             </AnimatePresence>
 
-            {/* Background Layer: Animated Flip-book */}
-            <div className="absolute inset-0 z-0">
+            {/* Background Layer (The Story Canvas) */}
+            <div className="absolute inset-0 z-0 bg-zinc-900">
                 <motion.img
-                    src={gameState === 'done' || gameState === 'evaporating' ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
-                    alt="City Background"
-                    className={`w-full h-full object-cover transition-none ${gameState === 'done' ? 'grayscale opacity-80 brightness-75' : 'opacity-70'}`}
-                    animate={gameState !== 'done' ? {
+                    src={['summoning', 'closeup', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
+                    alt="Story Background"
+                    className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-60' : 'opacity-80'}`}
+                    animate={['idle', 'detecting'].includes(gameState) ? {
                         scale: [1, 1.05, 1],
-                        x: [0, 5, -5, 0],
+                        x: [0, 8, -8, 0],
                         y: [0, 5, -5, 0],
-                    } : {}}
+                    } : { scale: 1, x: 0, y: 0 }}
                     transition={{
-                        duration: 10,
+                        duration: 8,
                         repeat: Infinity,
                         ease: "easeInOut"
                     }}
@@ -453,7 +455,7 @@ export default function Home() {
                 <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
                     <ambientLight intensity={1.5} />
                     <Suspense fallback={null}>
-                        <FoxScene state={gameState} handX={handPosition?.x ?? 0.5} />
+                        <FoxScene state={gameState} />
                         <SummonEffects state={gameState} />
                     </Suspense>
                 </Canvas>
@@ -549,8 +551,8 @@ export default function Home() {
                         Frame: {bgFrame} / Mode: Cinematic Repro
                     </div>
                     <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-red-600 text-xs font-bold">
-                        <span className="text-zinc-500 mr-2">STATE:</span>
-                        <span className="text-red-500">{gameState.toUpperCase()}</span>
+                        <span className="text-zinc-500 mr-2">SYSTEM:</span>
+                        <span className="text-red-500">{gameState === 'locked' ? 'READY_FOR_SUMMON' : gameState.toUpperCase()}</span>
                     </div>
                 </div>
             </div>

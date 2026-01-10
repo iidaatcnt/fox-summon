@@ -53,61 +53,63 @@ const Particles = ({ count = 20, color = "#ff5e00" }) => {
 };
 
 const FoxScene = ({ state, handX }: { state: string, handX: number }) => {
-    const texRight = useTexture('/fox_right.jpg');
-    const texLeft = useTexture('/fox_left.jpg');
-    const isFromRight = handX > 0.5;
-    const tex = isFromRight ? texRight : texLeft;
+    const tex01 = useTexture('/fox01.png');
+    const tex02 = useTexture('/fox02.png');
+    const tex03 = useTexture('/fox03.png');
 
     const meshRef = useRef<THREE.Mesh>(null);
     const [opac, setOpac] = useState(0);
-    const [scaleFactor, setScaleFactor] = useState(0.1);
-    const [posX, setPosX] = useState(15);
-    const [posY, setPosY] = useState(-5);
+    const [scaleFactor, setScaleFactor] = useState(1);
+    const [posX, setPosX] = useState(0);
+    const [posY, setPosY] = useState(0);
+    const [activeTex, setActiveTex] = useState<THREE.Texture>(tex01);
 
     useEffect(() => {
         let animId: number;
         const animate = () => {
             if (!meshRef.current) return;
-            if (state === 'summoning') {
-                const targetX = isFromRight ? -30 : 30;
-                const startX = isFromRight ? 25 : -25;
-                // Slightly slower sweep to make the fox head recognizable
-                setPosX(prev => {
-                    const next = THREE.MathUtils.lerp(prev === 15 || prev === -15 ? startX : prev, targetX, 0.08);
-                    return next;
-                });
-                setPosY(prev => THREE.MathUtils.lerp(prev, 0, 0.15));
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 40, 0.06)); // Still massive but builds up
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.2));
-            } else if (state === 'closeup') {
+
+            if (state === 'locked') {
+                setActiveTex(tex01);
                 setPosX(0);
                 setPosY(0);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 30, 0.1));
+                setScaleFactor(15); // Large backdrop
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
+            } else if (state === 'summoning') {
+                setActiveTex(tex02);
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 40, 0.1));
                 setOpac(1);
+            } else if (state === 'closeup') {
+                setActiveTex(tex02);
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 35, 0.05));
+                setOpac(1);
+            } else if (state === 'cooloff') {
+                setActiveTex(tex03);
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 20, 0.05));
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
             } else if (state === 'evaporating') {
-                setScaleFactor(prev => prev + 1.2);
-                setOpac(prev => Math.max(0, prev - 0.1));
+                setActiveTex(tex03);
+                setScaleFactor(prev => prev + 0.1);
+                setOpac(prev => Math.max(0, prev - 0.02));
             } else {
-                setPosX(isFromRight ? 15 : -15);
-                setPosY(-5);
-                setScaleFactor(0.1);
                 setOpac(0);
+                setScaleFactor(0.1);
             }
             animId = requestAnimationFrame(animate);
         };
         animate();
         return () => cancelAnimationFrame(animId);
-    }, [state, isFromRight]);
+    }, [state, tex01, tex02, tex03]);
 
     return (
         <group>
-            <ParallaxGroup intensity={2}>
-                <Particles count={state === 'done' ? 100 : 30} color={state === 'done' ? "#ff0000" : "#ff004c"} />
+            <ParallaxGroup intensity={state === 'locked' ? 0.5 : 2}>
+                <Particles count={state === 'evaporating' ? 150 : 30} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
             </ParallaxGroup>
             <mesh ref={meshRef} position={[posX, posY, -2]} scale={[scaleFactor, scaleFactor, 1]}>
                 <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
-                    map={tex}
+                    map={activeTex}
                     transparent
                     blending={state === 'evaporating' ? THREE.AdditiveBlending : THREE.NormalBlending}
                     depthTest={false}
@@ -220,24 +222,31 @@ export default function Home() {
             const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
             const masterGain = audioCtx.createGain();
             masterGain.connect(audioCtx.destination);
+            masterGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
 
-            // 1. Ominous Low Growl (Foundation)
-            const baseOsc = audioCtx.createOscillator();
-            baseOsc.type = 'sawtooth';
-            baseOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
-            baseOsc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 2);
+            // 1. Ominous Buildup (Rising frequency and volume)
+            const buildUp = audioCtx.createOscillator();
+            buildUp.type = 'sawtooth';
+            buildUp.frequency.setValueAtTime(40, audioCtx.currentTime);
+            buildUp.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 1.2);
 
-            const baseGain = audioCtx.createGain();
-            baseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            baseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
+            const buildGain = audioCtx.createGain();
+            buildGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            buildGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 1.0);
 
-            baseOsc.connect(baseGain);
-            baseGain.connect(masterGain);
-            baseOsc.start();
-            baseOsc.stop(audioCtx.currentTime + 2.5);
+            const buildFilter = audioCtx.createBiquadFilter();
+            buildFilter.type = 'lowpass';
+            buildFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
+            buildFilter.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 1.2);
 
-            // 2. Whoosh Effect (Transition)
-            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            buildUp.connect(buildFilter);
+            buildFilter.connect(buildGain);
+            buildGain.connect(masterGain);
+            buildUp.start();
+            buildUp.stop(audioCtx.currentTime + 1.5);
+
+            // 2. Heavy Whoosh / Wind
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 4, audioCtx.sampleRate);
             const noiseData = noiseBuffer.getChannelData(0);
             for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
 
@@ -246,83 +255,91 @@ export default function Home() {
             const whooshFilter = audioCtx.createBiquadFilter();
             whooshFilter.type = 'bandpass';
             whooshFilter.frequency.setValueAtTime(100, audioCtx.currentTime);
-            whooshFilter.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.8);
+            whooshFilter.frequency.exponentialRampToValueAtTime(4000, audioCtx.currentTime + 1.2);
 
             const whooshGain = audioCtx.createGain();
             whooshGain.gain.setValueAtTime(0, audioCtx.currentTime);
-            whooshGain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.1);
-            whooshGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            whooshGain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 1.0);
+            whooshGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.0);
 
             whoosh.connect(whooshFilter);
             whooshFilter.connect(whooshGain);
             whooshGain.connect(masterGain);
             whoosh.start();
 
-            // 3. THE BITE (Gabburi!) - Multiple layers
+            // 3. THE GRAND BITE (Impact at 1.2s)
             setTimeout(() => {
                 const now = audioCtx.currentTime;
 
-                // A. Heavy Impact (Sub-bass)
+                // A. Sub-bass Explosion
                 const impact = audioCtx.createOscillator();
-                impact.type = 'sine';
+                impact.type = 'triangle';
                 impact.frequency.setValueAtTime(150, now);
-                impact.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+                impact.frequency.exponentialRampToValueAtTime(30, now + 1.0);
                 const impactGain = audioCtx.createGain();
-                impactGain.gain.setValueAtTime(0.8, now);
-                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                impactGain.gain.setValueAtTime(2.0, now);
+                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
                 impact.connect(impactGain);
                 impactGain.connect(masterGain);
                 impact.start(now);
-                impact.stop(now + 0.5);
+                impact.stop(now + 2.0);
 
-                // B. Fleshy Crunch (White Noise with fast decay)
+                // B. Hard Crunch
                 const crunch = audioCtx.createBufferSource();
                 crunch.buffer = noiseBuffer;
                 const crunchFilter = audioCtx.createBiquadFilter();
                 crunchFilter.type = 'lowpass';
-                crunchFilter.frequency.setValueAtTime(2000, now);
+                crunchFilter.frequency.setValueAtTime(1200, now);
                 const crunchGain = audioCtx.createGain();
-                crunchGain.gain.setValueAtTime(0.6, now);
-                crunchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                crunchGain.gain.setValueAtTime(1.5, now);
+                crunchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
                 crunch.connect(crunchFilter);
                 crunchFilter.connect(crunchGain);
                 crunchGain.connect(masterGain);
                 crunch.start(now);
-                crunch.stop(now + 0.2);
+                crunch.stop(now + 1.0);
 
-                // C. High Transient (The "Snap")
-                const snap = audioCtx.createOscillator();
-                snap.type = 'square';
-                snap.frequency.setValueAtTime(1200, now);
-                const snapGain = audioCtx.createGain();
-                snapGain.gain.setValueAtTime(0.1, now);
-                snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-                snap.connect(snapGain);
-                snapGain.connect(masterGain);
-                snap.start(now);
-                snap.stop(now + 0.1);
-            }, 600); // Synchronized with the Fox sweep peak
+                // C. High-pitched Ringing (Aftershock)
+                const ring = audioCtx.createOscillator();
+                ring.type = 'sine';
+                ring.frequency.setValueAtTime(1000, now);
+                const ringGain = audioCtx.createGain();
+                ringGain.gain.setValueAtTime(0.3, now);
+                ringGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+                ring.connect(ringGain);
+                ringGain.connect(masterGain);
+                ring.start(now);
+                ring.stop(now + 2.8);
+            }, 1200);
 
         } catch (e) { }
     };
 
     const startSummon = () => {
-        if (['summoning', 'closeup', 'evaporating', 'done'].includes(gameState)) return;
+        if (['summoning', 'closeup', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
         playSummonSound();
         setGameState('summoning');
-        // Give more time in 'summoning' and 'closeup' to see the fox clearly
+
+        // 1. Attack Moment (fox02)
         setTimeout(() => {
             setGameState('closeup');
+
+            // 2. Transition to Cool-off (fox03)
             setTimeout(() => {
-                setGameState('evaporating');
-                setTimeout(() => setGameState('done'), 1000);
-            }, 1000); // 1.0s closeup to see the face
-        }, 1500); // 1.5s sweep time
+                setGameState('cooloff');
+
+                // 3. Final Evaporation with smoke/fade
+                setTimeout(() => {
+                    setGameState('evaporating');
+                    setTimeout(() => setGameState('done'), 2000);
+                }, 3000); // Wait for excitement to cool down (3 seconds)
+            }, 2000);
+        }, 1200);
     };
 
     const showWebcam = ['idle', 'detecting'].includes(gameState);
 
-    const isBiting = ['summoning', 'closeup', 'evaporating'].includes(gameState);
+    const isBiting = ['summoning', 'closeup', 'cooloff', 'evaporating'].includes(gameState);
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
@@ -331,18 +348,18 @@ export default function Home() {
             <AnimatePresence>
                 {isBiting && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.05, x: "-50%", y: "-50%", left: "50%", top: "50%" }}
-                        animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                        exit={{ opacity: 0, scale: 2, x: "-50%", y: "-50%" }}
+                        initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%", left: "50%", top: "50%" }}
+                        animate={{ opacity: 1, scale: 2.5, x: "-50%", y: "-50%" }}
+                        exit={{ opacity: 0, scale: 5 }}
                         transition={{
-                            duration: 0.5,
-                            ease: [0.16, 1, 0.3, 1]
+                            duration: 0.8,
+                            ease: [0.22, 1, 0.36, 1]
                         }}
-                        className="absolute z-10 pointer-events-none w-full h-full origin-center"
+                        className="absolute z-50 pointer-events-none w-full h-full origin-center"
                     >
                         <img
-                            src="/fox_right.jpg"
-                            className="w-full h-full object-cover brightness-75 shadow-[0_0_100px_rgba(255,0,0,0.5)]"
+                            src={gameState === 'cooloff' || gameState === 'evaporating' ? "/fox03.png" : "/fox02.png"}
+                            className="w-full h-full object-cover brightness-90 shadow-[0_0_100px_rgba(255,0,0,0.5)]"
                             alt="Background Fox"
                         />
                         {/* Dramatic Red Flash Overlay */}

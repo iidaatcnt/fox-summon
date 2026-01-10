@@ -385,10 +385,10 @@ export default function Home() {
             {/* Background Layer (The Story Canvas) */}
             <div className="absolute inset-0 z-0 bg-zinc-900">
                 <motion.img
-                    src={['victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
+                    src={['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
                     alt="Story Background"
                     className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-60' : 'opacity-80'}`}
-                    animate={['idle', 'detecting', 'locked', 'summoning', 'closeup'].includes(gameState) ? {
+                    animate={['idle', 'detecting', 'locked'].includes(gameState) ? {
                         scale: [1, 1.05, 1],
                         x: [0, 8, -8, 0],
                         y: [0, 5, -5, 0],

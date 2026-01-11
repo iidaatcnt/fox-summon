@@ -673,7 +673,7 @@ export default function Home() {
 
             <div className="absolute inset-0 z-0 bg-zinc-950">
                 <motion.img
-                    src={['victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/city_bug01.jpg" : (['summoning', 'closeup'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg"))}
+                    src={['victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
                     className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-40' : 'opacity-60'}`}
                     animate={['idle', 'detecting', 'locked'].includes(gameState) ? { scale: [1, 1.05, 1], rotate: [0, 1, -1, 0] } : { scale: 1.1 }}
                     transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}

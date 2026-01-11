@@ -344,13 +344,17 @@ export default function Home() {
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === 'Space' && ['victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) {
-                setGameState('idle');
+            if (e.code === 'Space') {
+                if (!isInitialized && initStatus === 'STANDBY') {
+                    initializeSystem();
+                } else if (['victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) {
+                    setGameState('idle');
+                }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [gameState]);
+    }, [gameState, isInitialized, initStatus]);
 
     const playBeep = (freq = 880, length = 0.15) => {
         try {
@@ -622,12 +626,10 @@ export default function Home() {
                                     )}
                                 </button>
 
-                                <div className="absolute -bottom-6 left-0 right-0 overflow-hidden h-4 pointer-events-none">
-                                    <motion.div
-                                        animate={{ x: [-100, 100] }}
-                                        transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
-                                        className="h-[1px] w-1/2 bg-cyan-600/30 mx-auto"
-                                    />
+                                <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
+                                    <span className="text-[10px] font-mono text-white/50 uppercase tracking-[0.3em]">Press</span>
+                                    <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-mono text-cyan-400 border border-white/20">SPACE</span>
+                                    <span className="text-[10px] font-mono text-white/50 uppercase tracking-[0.3em]">to activate</span>
                                 </div>
                             </div>
 

@@ -137,7 +137,7 @@ export default function Home() {
 
         const handleFirstInteraction = () => {
             if (gameState === 'idle' || gameState === 'detecting') {
-                battleAudioRef.current?.play().catch(() => {});
+                battleAudioRef.current?.play().catch(() => { });
             }
             window.removeEventListener('click', handleFirstInteraction);
             window.removeEventListener('keydown', handleFirstInteraction);
@@ -163,7 +163,7 @@ export default function Home() {
             // Transition back to idle/detecting (on retry or start)
             endingAudioRef.current?.pause();
             if (endingAudioRef.current) endingAudioRef.current.currentTime = 0;
-            battleAudioRef.current?.play().catch(() => {});
+            battleAudioRef.current?.play().catch(() => { });
         } else if (['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating'].includes(gameState)) {
             // Hand recognized or summon in progress
             battleAudioRef.current?.pause();
@@ -172,7 +172,7 @@ export default function Home() {
         } else if (gameState === 'done') {
             // Mission complete, waiting state
             battleAudioRef.current?.pause();
-            endingAudioRef.current?.play().catch(() => {});
+            endingAudioRef.current?.play().catch(() => { });
         }
     }, [gameState]);
 
@@ -253,23 +253,77 @@ export default function Home() {
         }
     }, [isSynced, isFoxHand, gameState]);
 
+    // Use a ref for gameState to avoid restarting recognition on every state change
+    const gameStateRef = useRef(gameState);
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
+
+    const recognitionRef = useRef<any>(null);
+
     useEffect(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) return;
+        if (!SpeechRecognition) {
+            console.error('Speech recognition not supported');
+            return;
+        }
+
         const recognition = new SpeechRecognition();
         recognition.lang = 'ja-JP';
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognitionRef.current = recognition;
+
+        let activelyListening = false;
+
         recognition.onresult = (event: any) => {
-            const lastResult = event.results[event.results.length - 1];
-            const text = lastResult[0].transcript.trim();
-            if (gameState === 'locked' && FOX_TRIGGER_WORD.some(word => text.includes(word))) {
-                startSummon();
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const text = event.results[i][0].transcript.trim();
+                if (gameStateRef.current === 'locked' && FOX_TRIGGER_WORD.some(word => text.includes(word))) {
+                    startSummon();
+                }
             }
         };
-        recognition.start();
-        return () => recognition.stop();
-    }, [gameState]);
+
+        recognition.onend = () => {
+            if (activelyListening) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error('Speech recognition restart failed:', e);
+                }
+            }
+        };
+
+        recognition.onerror = (event: any) => {
+            if (event.error === 'not-allowed') {
+                activelyListening = false;
+            }
+        };
+
+        // Function to start recognition on user gesture
+        const startRecognitionOnGesture = () => {
+            if (!activelyListening) {
+                activelyListening = true;
+                try {
+                    recognition.start();
+                    console.log('Speech recognition started by user gesture');
+                } catch (e) {
+                    console.error('Speech recognition start failed:', e);
+                }
+            }
+        };
+
+        window.addEventListener('click', startRecognitionOnGesture);
+        window.addEventListener('touchstart', startRecognitionOnGesture);
+
+        return () => {
+            activelyListening = false;
+            recognition.stop();
+            window.removeEventListener('click', startRecognitionOnGesture);
+            window.removeEventListener('touchstart', startRecognitionOnGesture);
+        };
+    }, []);
 
     const playSummonSound = () => {
         try {

@@ -706,7 +706,7 @@ export default function Home() {
                     >
                         <div className="relative w-full max-w-lg aspect-square flex items-center justify-center">
                             <motion.img
-                                src="/fox01.png"
+                                src="/fox03.png"
                                 className="w-full h-full object-contain filter drop-shadow-[0_0_60px_rgba(59,130,246,0.6)]"
                                 animate={{
                                     y: [0, -20, 0],
@@ -761,8 +761,8 @@ export default function Home() {
                     >
                         <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-cyan-400' : 'text-white'}`}>
                             <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
-                                <path d="M20,80 Q30,40 25,20 L35,45 Q50,40 65,45 L75,20 Q70,40 80,80 Z" />
-                                <circle cx="50" cy="55" r="5" className="animate-pulse" />
+                                <path d="M15,80 Q10,40 30,10 L45,45 Q50,40 55,45 L70,10 Q90,40 85,80 Q50,95 15,80" />
+                                <circle cx="50" cy="55" r="3" className="animate-pulse" />
                             </svg>
                             <div className="text-center mt-4">
                                 <span className="text-[10px] font-mono font-black tracking-[0.5em] uppercase opacity-50">

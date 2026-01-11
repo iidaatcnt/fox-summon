@@ -127,6 +127,7 @@ export default function Home() {
     const [webcamEnabled, setWebcamEnabled] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [initStatus, setInitStatus] = useState('STANDBY');
+    const [isSpeechSupported, setIsSpeechSupported] = useState(true);
 
     const [isMicActive, setIsMicActive] = useState(false);
 
@@ -142,8 +143,21 @@ export default function Home() {
         gameStateRef.current = gameState;
     }, [gameState]);
 
-    // Initial setup for audio objects (no play yet)
+    // Check support and permissions on mount
     useEffect(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            setIsSpeechSupported(false);
+        }
+
+        // Proactively check mic if possible (some browsers allow this without prompt if previously granted)
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            const hasMic = devices.some(device => device.kind === 'audioinput');
+            if (!hasMic) {
+                setMicPermission(false);
+            }
+        }).catch(() => { });
+
         battleAudioRef.current = new Audio('/battle.mp3');
         battleAudioRef.current.loop = true;
         endingAudioRef.current = new Audio('/ending.mp3');
@@ -449,13 +463,20 @@ export default function Home() {
                                 <div className="grid grid-cols-2 gap-4 text-[10px] font-mono font-bold tracking-tight">
                                     <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${cameraPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
                                         {cameraPermission ? <Camera size={14} /> : <VideoOff size={14} />}
-                                        CAM: {cameraPermission ? 'READY' : 'WAIT'}
+                                        CAM: {cameraPermission ? 'READY' : 'WAITING'}
                                     </div>
-                                    <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${micPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
-                                        {micPermission ? <Mic size={14} /> : <MicOff size={14} />}
-                                        MIC: {micPermission ? 'READY' : 'WAIT'}
+                                    <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${!isSpeechSupported ? 'border-amber-600 text-amber-500 bg-amber-900/10' : micPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
+                                        {!isSpeechSupported ? <MicOff size={14} /> : micPermission ? <Mic size={14} /> : <Mic size={14} className="animate-pulse" />}
+                                        MIC: {!isSpeechSupported ? 'UNSUPPORTED' : micPermission ? 'READY' : 'READY_TO_ACTIVATE'}
                                     </div>
                                 </div>
+
+                                {!isSpeechSupported && (
+                                    <div className="bg-amber-900/20 border border-amber-600/50 p-3 rounded text-[10px] text-amber-500 font-bold leading-tight">
+                                        ⚠️ お使いのブラウザは音声認識に対応していません。<br />
+                                        SafariまたはChromeの通常ブラウザで開き直してください。
+                                    </div>
+                                )}
                             </div>
 
                             <button

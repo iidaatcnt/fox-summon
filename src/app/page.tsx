@@ -5,7 +5,7 @@ import Webcam from 'react-webcam';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { useTexture, CameraShake } from '@react-three/drei';
-import { Mic } from 'lucide-react';
+import { Mic, MicOff, Camera, VideoOff } from 'lucide-react';
 import * as THREE from 'three';
 import { useHandTracking } from '@/hooks/useHandTracking';
 
@@ -429,9 +429,15 @@ export default function Home() {
                                     このアプリはカメラとマイクを使用します。
                                     デバイスの許可設定を確認し、下のボタンを押してシステムを起動してください。
                                 </p>
-                                <div className="grid grid-cols-2 gap-4 text-[10px] font-mono">
-                                    <div className={`p-2 border ${cameraPermission ? 'border-red-600 text-red-500' : 'border-zinc-700 text-zinc-600'}`}>CAM: {cameraPermission ? 'READY' : 'WAIT'}</div>
-                                    <div className={`p-2 border ${micPermission ? 'border-red-600 text-red-500' : 'border-zinc-700 text-zinc-600'}`}>MIC: {micPermission ? 'READY' : 'WAIT'}</div>
+                                <div className="grid grid-cols-2 gap-4 text-[10px] font-mono font-bold tracking-tight">
+                                    <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${cameraPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
+                                        {cameraPermission ? <Camera size={14} /> : <VideoOff size={14} />}
+                                        CAM: {cameraPermission ? 'READY' : 'WAIT'}
+                                    </div>
+                                    <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${micPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
+                                        {micPermission ? <Mic size={14} /> : <MicOff size={14} />}
+                                        MIC: {micPermission ? 'READY' : 'WAIT'}
+                                    </div>
                                 </div>
                             </div>
 
@@ -513,9 +519,21 @@ export default function Home() {
 
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-8 pointer-events-none">
                 <div className="w-full flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-red-600 animate-pulse rounded-full" />
-                        <h1 className="text-2xl font-black italic text-red-600">ANIME:REPRO_V1</h1>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-red-600 animate-pulse rounded-full" />
+                            <h1 className="text-2xl font-black italic text-red-600 tracking-tighter">ANIME:REPRO_V1</h1>
+                        </div>
+                        <div className="flex gap-4 px-1">
+                            <div className={`flex items-center gap-1.5 transition-colors ${cameraPermission ? 'text-zinc-400' : 'text-red-500 animate-pulse'}`}>
+                                {cameraPermission ? <Camera size={14} /> : <VideoOff size={14} />}
+                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{cameraPermission ? 'V-LINK_OK' : 'V-LINK_NG'}</span>
+                            </div>
+                            <div className={`flex items-center gap-1.5 transition-colors ${micPermission ? 'text-zinc-400' : 'text-red-500 animate-pulse'}`}>
+                                {micPermission ? <Mic size={14} /> : <MicOff size={14} />}
+                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{micPermission ? 'A-LINK_OK' : 'A-LINK_NG'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -539,7 +557,7 @@ export default function Home() {
                 )}
 
                 <div className="w-full flex justify-between items-end">
-                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_READY'}</div>
+                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_ERROR'}</div>
                     <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-red-600 text-xs font-bold">
                         <span className="text-zinc-500 mr-2">SYSTEM:</span>
                         <span className="text-red-500">{gameState === 'locked' ? 'READY_FOR_SUMMON' : gameState.toUpperCase()}</span>

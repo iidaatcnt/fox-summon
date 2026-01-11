@@ -100,13 +100,12 @@ const FoxScene = ({ state }: { state: string }) => {
                 setOpac(0);
             } else if (state === 'cooloff') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 10, 0.05)); // Slightly smaller to see the whole fox
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.08)); // Stable fade in
-            } else if (state === 'evaporating') {
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 10, 0.1));
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.2));
+            } else if (state === 'evaporating' || state === 'done') {
                 setActiveTex(tex03);
-                // Slower fade out for dramatic effect
-                setScaleFactor(prev => prev * 1.003);
-                setOpac(prev => Math.max(0, prev - 0.002));
+                setScaleFactor(prev => prev * 1.002);
+                setOpac(prev => Math.max(0, prev - 0.005));
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -158,6 +157,7 @@ export default function Home() {
     const [micPermission, setMicPermission] = useState(false);
     const [webcamEnabled, setWebcamEnabled] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isKonShouted, setIsKonShouted] = useState(false);
     const [initStatus, setInitStatus] = useState('STANDBY');
     const [isSpeechSupported, setIsSpeechSupported] = useState(true);
 
@@ -450,6 +450,9 @@ export default function Home() {
         // Use Ref to avoid stale closure issues
         if (['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameStateRef.current)) return;
 
+        setIsKonShouted(true);
+        setTimeout(() => setIsKonShouted(false), 2000);
+
         playSummonSound();
         setGameState('summoning');
         setTimeout(() => {
@@ -547,6 +550,21 @@ export default function Home() {
                                 )}
                             </button>
                         </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {isKonShouted && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+                        animate={{ opacity: 1, scale: [1.2, 1], rotate: [0, 5] }}
+                        exit={{ opacity: 0, scale: 2, filter: 'blur(20px)' }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+                    >
+                        <h2 className="text-[25vw] font-black italic text-red-600 drop-shadow-[0_0_50px_rgba(255,0,0,0.9)] filter contrast-150 tracking-tighter">
+                            コン！
+                        </h2>
                     </motion.div>
                 )}
             </AnimatePresence>

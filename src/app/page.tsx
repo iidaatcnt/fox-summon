@@ -104,8 +104,9 @@ const FoxScene = ({ state }: { state: string }) => {
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.2));
             } else if (state === 'evaporating' || state === 'done') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => prev * 1.002);
-                setOpac(prev => Math.max(0, prev - 0.005));
+                setScaleFactor(prev => prev * 1.001);
+                // Even slower fade for "pre-ending" feel
+                setOpac(prev => Math.max(0, prev - 0.0015));
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -735,7 +736,12 @@ export default function Home() {
                     <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_ERROR'}</div>
                     <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-red-600 text-xs font-bold">
                         <span className="text-zinc-500 mr-2">SYSTEM:</span>
-                        <span className="text-red-500">{gameState === 'locked' ? 'READY_FOR_SUMMON' : gameState.toUpperCase()}</span>
+                        <span className="text-red-500">
+                            {gameState === 'locked' ? 'READY_FOR_SUMMON' :
+                                gameState === 'cooloff' ? 'FAREWELL' :
+                                    gameState === 'evaporating' ? 'DEPARTING...' :
+                                        gameState.toUpperCase()}
+                        </span>
                     </div>
                 </div>
             </div>

@@ -822,42 +822,40 @@ export default function Home() {
                             exit={{ opacity: 0, y: 20 }}
                             className="flex flex-col items-center gap-12 mb-32"
                         >
-                            <div className="bg-black/80 backdrop-blur-md p-10 border-t border-b border-cyan-500/30 relative overflow-hidden max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.9)] rounded-lg pointer-events-auto">
+                            <div className="bg-black/60 backdrop-blur-sm p-4 border border-cyan-500/20 relative overflow-hidden max-w-sm shadow-2xl rounded-sm pointer-events-auto">
                                 {isMicActive && (
                                     <motion.div
-                                        className="absolute inset-0 bg-cyan-900/10 pointer-events-none"
-                                        animate={{ opacity: [0, 0.2, 0] }}
+                                        className="absolute inset-0 bg-cyan-950/20 pointer-events-none"
+                                        animate={{ opacity: [0, 0.1, 0] }}
                                         transition={{ duration: 2, repeat: Infinity }}
                                     />
                                 )}
-                                <div className="flex justify-between items-center mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-cyan-500 rounded-full animate-ping" />
-                                        <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest">Acoustic Monitoring...</span>
+                                <div className="flex justify-between items-center mb-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+                                        <span className="text-[8px] font-mono text-cyan-400/80 font-bold uppercase tracking-widest">Monitoring...</span>
                                     </div>
                                     {isMicActive && (
-                                        <div className="flex items-center gap-1.5 text-cyan-400/80">
-                                            <Mic size={12} className="animate-pulse" />
-                                            <span className="text-[10px] font-mono font-bold tracking-widest uppercase">Live</span>
+                                        <div className="flex items-center gap-1 text-cyan-400/60">
+                                            <Mic size={10} className="animate-pulse" />
+                                            <span className="text-[8px] font-mono font-bold tracking-widest uppercase">Live</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex items-end gap-2">
-                                        <span className="text-white text-5xl font-black italic tracking-tighter uppercase leading-none">Hero</span>
-                                        <span className="text-cyan-500 text-sm font-mono font-bold pb-1 tracking-[0.3em]">LINK_INIT</span>
+                                <div className="space-y-2 border-l-2 border-cyan-500/30 pl-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-white text-xl font-black italic tracking-tighter uppercase leading-none">Hero</span>
+                                        <span className="text-cyan-500 text-[10px] font-mono font-bold tracking-[0.2em] opacity-80">LINK_MODE</span>
                                     </div>
-                                    <p className="text-zinc-400 text-xs font-mono leading-relaxed uppercase">
-                                        &gt; 狐の手をカメラの中央に合わせてください。<br />
-                                        &gt; リンクが完了すると覚醒状態に入ります。<br />
-                                        &gt; 合言葉は「コン！」です。<br />
-                                        <span className="text-[9px] opacity-40 mt-1 block tracking-wider">※ 音声が反応しない場合は画面をタップ</span>
+                                    <p className="text-zinc-400 text-[9px] font-mono leading-tight uppercase opacity-70">
+                                        &gt; 指の形をシルエットに合わせ、<br />
+                                        &gt; 「コン！」と唱えてください。
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/5">
-                                    <div className={`w-2 h-2 rounded-full ${gameState === 'locked' ? 'bg-cyan-500 animate-ping' : 'bg-zinc-600'}`} />
-                                    <p className="text-cyan-500 text-[10px] font-mono uppercase tracking-[0.4em] font-bold">
-                                        {gameState === 'locked' ? 'READY_FOR_VOICE_LINK' : 'SCANNING_SIGNAL'}
+                                <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/5">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${gameState === 'locked' ? 'bg-cyan-500 animate-ping' : 'bg-zinc-600'}`} />
+                                    <p className="text-cyan-500 text-[8px] font-mono uppercase tracking-[0.3em] font-bold">
+                                        {gameState === 'locked' ? 'SIGNAL_LOCKED' : 'SCANNING'}
                                     </p>
                                 </div>
                             </div>

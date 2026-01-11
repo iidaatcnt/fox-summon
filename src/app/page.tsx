@@ -9,6 +9,7 @@ import { Mic, MicOff, Camera, VideoOff } from 'lucide-react';
 import * as THREE from 'three';
 import { useHandTracking } from '@/hooks/useHandTracking';
 import { useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
 
 const FOX_TRIGGER_WORD = ['コン', 'こん', 'kon', 'konn', 'こんっ', 'こんー', 'こーん', 'こん！', 'コン！', 'こん。', 'コン。'];
 const WEB_APP_TITLE = 'FOX:SUMMON_NEXT';
@@ -17,17 +18,36 @@ const WEB_APP_TITLE = 'FOX:SUMMON_NEXT';
 
 const ParallaxGroup = ({ children, intensity = 1 }: { children: React.ReactNode, intensity?: number }) => {
     const group = useRef<THREE.Group>(null);
+    const target = useRef({ x: 0, y: 0 });
+
     useEffect(() => {
-        const handleMove = (e: MouseEvent) => {
-            if (!group.current) return;
-            const x = (e.clientX / window.innerWidth) * 2 - 1;
-            const y = -(e.clientY / window.innerHeight) * 2 + 1;
-            group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, y * 0.1 * intensity, 0.1);
-            group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, x * 0.1 * intensity, 0.1);
+        const handleMove = (e: any) => {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            target.current.x = (clientX / window.innerWidth) * 2 - 1;
+            target.current.y = -(clientY / window.innerHeight) * 2 + 1;
         };
         window.addEventListener('mousemove', handleMove);
-        return () => window.removeEventListener('mousemove', handleMove);
-    }, [intensity]);
+        window.addEventListener('touchmove', handleMove);
+        return () => {
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('touchmove', handleMove);
+        };
+    }, []);
+
+    useFrame((state) => {
+        if (!group.current) return;
+        const currentIntensity = intensity;
+        group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, target.current.y * 0.1 * currentIntensity, 0.05);
+        group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, target.current.x * 0.1 * currentIntensity, 0.05);
+
+        // Slowly drift back to center if intensity is low (like in ending)
+        if (currentIntensity === 0) {
+            target.current.x *= 0.9;
+            target.current.y *= 0.9;
+        }
+    });
+
     return <group ref={group}>{children}</group>;
 };
 
@@ -96,17 +116,14 @@ const FoxScene = ({ state }: { state: string }) => {
                 setActiveTex(tex02);
                 setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.2));
                 setOpac(1);
-            } else if (state === 'victory') {
-                setOpac(0);
-            } else if (state === 'cooloff') {
+            } else if (state === 'victory' || state === 'cooloff') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 10, 0.1));
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.2));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 9, 0.1));
+                setOpac(1);
             } else if (state === 'evaporating' || state === 'done') {
                 setActiveTex(tex03);
                 setScaleFactor(prev => prev * 1.001);
-                // Even slower fade for "pre-ending" feel
-                setOpac(prev => Math.max(0, prev - 0.0015));
+                setOpac(prev => Math.max(0, prev - 0.0012));
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -125,7 +142,7 @@ const FoxScene = ({ state }: { state: string }) => {
 
     return (
         <group>
-            <ParallaxGroup intensity={state === 'locked' ? 0.3 : 1.5}>
+            <ParallaxGroup intensity={['cooloff', 'evaporating', 'done'].includes(state) ? 0 : (state === 'locked' ? 0.3 : 1.5)}>
                 <Particles
                     count={state === 'evaporating' ? 300 : 40}
                     color={state === 'evaporating' ? "#ffffff" : "#ff004c"}

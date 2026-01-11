@@ -500,44 +500,46 @@ export default function Home() {
                         key="startup"
                         exit={{
                             opacity: 0,
-                            filter: 'brightness(5) blur(30px)',
-                            scale: 1.5,
-                            transition: { duration: 0.8, ease: "easeIn" }
+                            scale: 1.2,
+                            transition: { duration: 0.8, ease: "easeOut" }
                         }}
-                        className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center overflow-hidden font-sans"
+                        className="absolute inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center p-6 text-center overflow-hidden font-sans"
                     >
-                        {/* CRT Scanline Overlay */}
-                        <div className="absolute inset-0 pointer-events-none opacity-30 z-50 mix-blend-overlay"
-                            style={{ background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05))', backgroundSize: '100% 4px, 3px 100%' }} />
+                        {/* High-Tech Particles */}
+                        <div className="absolute inset-0 opacity-20 z-0">
+                            {[...Array(20)].map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    className="absolute w-1 h-1 bg-blue-400 rounded-full"
+                                    initial={{ x: Math.random() * 100 + "%", y: Math.random() * 100 + "%", opacity: 0 }}
+                                    animate={{ y: [null, "-10%"], opacity: [0, 1, 0] }}
+                                    transition={{ duration: 5 + Math.random() * 5, repeat: Infinity, delay: Math.random() * 5 }}
+                                />
+                            ))}
+                        </div>
 
-                        {/* Shonen Anime Glitch Background */}
-                        <motion.div
-                            animate={{ opacity: [0.05, 0.1, 0.05], x: [-5, 5, -5] }}
-                            transition={{ duration: 0.1, repeat: Infinity }}
-                            className="absolute inset-0 bg-red-900/10 pointer-events-none"
-                        />
-
-                        {/* Menacing Fox Shadow */}
+                        {/* Majestic Heroic Fox */}
                         <motion.img
                             src="/fox01.png"
-                            initial={{ opacity: 0, scale: 2, y: 100 }}
+                            initial={{ opacity: 0, scale: 1.1, y: 50 }}
                             animate={{
-                                opacity: [0.1, 0.25, 0.1],
-                                scale: [1.8, 1.9, 1.8],
-                                rotate: [-1, 1, -1]
+                                opacity: [0.3, 0.5, 0.3],
+                                scale: [1.05, 1.1, 1.05],
                             }}
                             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute z-0 w-[200%] h-[200%] object-contain pointer-events-none grayscale brightness-0 invert opacity-20"
+                            className="absolute z-0 w-full h-full object-contain pointer-events-none drop-shadow-[0_0_80px_rgba(59,130,246,0.3)] filter brightness-125 saturate-150"
                         />
 
-                        {/* Decorative HUD Elements */}
-                        <div className="absolute top-10 left-10 text-left space-y-1 opacity-40 hidden md:block">
-                            <div className="text-[10px] font-mono text-red-600 font-bold tracking-[0.3em]">PROJECT: KON_NEXT</div>
-                            <div className="text-[8px] font-mono text-white/50 lowercase">// terminal_auth_v4.0.2</div>
-                        </div>
-                        <div className="absolute bottom-10 right-10 text-right space-y-1 opacity-40 hidden md:block">
-                            <div className="text-[8px] font-mono text-white/50">ENCRYPTION: AES-256_ACTIVE</div>
-                            <div className="text-[10px] font-mono text-red-600 font-bold">STATUS: STANDBY...</div>
+                        {/* Hero HUD Elements */}
+                        <div className="absolute top-10 inset-x-0 flex justify-between px-10 opacity-60">
+                            <div className="text-left">
+                                <div className="text-[10px] font-mono text-cyan-400 font-black tracking-[.3em]">HERO_OS_V2.5</div>
+                                <div className="text-[8px] font-mono text-white/40 tracking-widest uppercase">Encryption: Secure</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-[10px] font-mono text-cyan-400 font-black tracking-[.3em]">MISSION: KON_AWAKEN</div>
+                                <div className="text-[8px] font-mono text-white/40 tracking-widest uppercase">Status: Standby</div>
+                            </div>
                         </div>
 
                         <motion.div
@@ -546,87 +548,76 @@ export default function Home() {
                             transition={{ duration: 0.8, delay: 0.2 }}
                             className="relative z-20 w-full max-w-2xl space-y-12"
                         >
-                            {/* Aggressive Title Section */}
-                            <div className="relative inline-block">
+                            {/* Heroic Title Section */}
+                            <div className="space-y-4">
                                 <motion.div
-                                    className="absolute -inset-4 bg-red-600/20 blur-2xl rounded-full"
-                                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                                    className="w-20 h-1 bg-cyan-500 mx-auto rounded-full shadow-[0_0_15px_rgba(34,211,238,0.8)]"
+                                    animate={{ width: [40, 100, 40] }}
                                     transition={{ duration: 3, repeat: Infinity }}
                                 />
                                 <div className="relative">
-                                    <h2 className="text-red-600 text-[12px] font-black tracking-[1em] uppercase mb-2 drop-shadow-[0_0_10px_rgba(255,0,0,0.5)]">
-                                        Public Safety Division 4
-                                    </h2>
-                                    <h1 className="text-8xl font-black italic text-white tracking-tighter leading-none">
-                                        FOX<span className="text-red-700">SUMMON</span>
+                                    <h1 className="text-7xl md:text-8xl font-black text-white tracking-widest leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.5)] uppercase">
+                                        Fox<span className="text-cyan-400 italic">Hero</span>
                                     </h1>
-                                    <div className="flex justify-between items-center mt-2 px-1">
-                                        <div className="h-[2px] flex-grow bg-white/20" />
-                                        <span className="mx-4 text-[10px] font-mono text-white/40 tracking-[0.5em]">CLASSIFIED</span>
-                                        <div className="h-[2px] flex-grow bg-white/20" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Contract Details Box */}
-                            <div className="grid md:grid-cols-2 gap-6 scale-90 md:scale-100">
-                                <div className="bg-zinc-900/80 backdrop-blur-xl border-l-4 border-red-600 p-6 text-left space-y-4 shadow-2xl">
-                                    <h3 className="text-white font-black italic text-lg tracking-widest border-b border-white/10 pb-2 flex justify-between items-center">
-                                        BIO-SYNC
-                                        <span className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
-                                    </h3>
-                                    <p className="text-[11px] text-zinc-400 font-mono leading-relaxed uppercase tracking-tight">
-                                        &gt; Syncing with optical sensor...<br />
-                                        &gt; Initializing voice trigger command...<br />
-                                        &gt; Biological payment authorized.<br />
-                                        &gt; <span className="text-red-500 font-bold">WARNING: DO NOT BREAK THE CONTRACT.</span>
+                                    <p className="text-cyan-400 text-xs font-mono font-black tracking-[0.5em] mt-4 uppercase">
+                                        Guardian Alliance Initiative
                                     </p>
                                 </div>
+                            </div>
 
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3 h-full">
-                                        <motion.div
-                                            whileTap={{ scale: 0.95 }}
-                                            className={`p-4 border-2 flex flex-col items-center justify-center gap-2 transition-all duration-500 ${cameraPermission ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-white/10 bg-white/5 text-white/20'}`}
-                                        >
-                                            <Camera size={24} strokeWidth={3} />
-                                            <span className="text-[9px] font-black tracking-widest uppercase">Optic</span>
-                                        </motion.div>
-                                        <motion.div
-                                            whileTap={{ scale: 0.95 }}
-                                            className={`p-4 border-2 flex flex-col items-center justify-center gap-2 transition-all duration-500 ${micPermission ? 'border-red-600 bg-red-900/20 text-red-500' : 'border-white/10 bg-white/5 text-white/20'}`}
-                                        >
-                                            <Mic size={24} strokeWidth={3} className={micPermission ? '' : 'animate-pulse text-white/40'} />
-                                            <span className="text-[9px] font-black tracking-widest uppercase">Voice</span>
-                                        </motion.div>
+                            {/* System Readiness Box */}
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="bg-cyan-950/20 backdrop-blur-md border-t-2 border-cyan-500/30 p-6 text-left rounded-xl shadow-xl">
+                                    <h3 className="text-cyan-400 font-black text-xs tracking-[0.3em] mb-4 uppercase flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+                                        Avatar Link Status
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <div className={`flex items-center gap-3 transition-all ${cameraPermission ? 'text-white' : 'text-white/20'}`}>
+                                            <Camera size={14} className={cameraPermission ? 'text-cyan-400' : ''} />
+                                            <span className="text-[10px] font-mono uppercase tracking-widest">Optical: {cameraPermission ? 'LINKED' : 'WAITING'}</span>
+                                        </div>
+                                        <div className={`flex items-center gap-3 transition-all ${micPermission ? 'text-white' : 'text-white/20'}`}>
+                                            <Mic size={14} className={micPermission ? 'text-cyan-400' : ''} />
+                                            <span className="text-[10px] font-mono uppercase tracking-widest">Voice: {micPermission ? 'LINKED' : 'WAITING'}</span>
+                                        </div>
                                     </div>
+                                </div>
+
+                                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 text-left rounded-xl flex flex-col justify-center shadow-lg">
+                                    <p className="text-[9px] text-zinc-400 font-mono leading-relaxed uppercase tracking-widest">
+                                        ヒーローを呼び出すために、カメラとマイクの許可が必要です。
+                                        準備ができたら、下のボタンを押して出撃してください。
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* The Final Button: Contract Establish */}
+                            {/* Hero Start Button */}
                             <div className="relative group max-w-sm mx-auto">
                                 <motion.div
-                                    className="absolute -inset-1 bg-gradient-to-r from-red-600 to-red-900 rounded opacity-75 blur group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"
+                                    className="absolute -inset-1 bg-gradient-to-r from-cyan-600 to-blue-400 rounded-lg opacity-40 blur group-hover:opacity-100 transition duration-500"
+                                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
                                 />
                                 <button
                                     onClick={initializeSystem}
                                     disabled={initStatus === 'BOOTING...'}
-                                    className="relative w-full bg-black border border-red-900 text-white py-6 px-10 transition-all active:scale-95 disabled:opacity-30 group-hover:border-red-600"
+                                    className="relative w-full bg-zinc-900 border border-cyan-500/50 text-white py-6 px-10 rounded-lg transition-all active:scale-[0.98] group-hover:border-cyan-400 shadow-2xl"
                                 >
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="text-[10px] font-mono text-red-600 font-bold tracking-[0.5em] group-hover:text-red-400 transition-colors">
-                                            ESTABLISH_LINK
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[9px] font-mono text-cyan-400 font-black tracking-[0.4em] mb-1">
+                                            SYSTEM_ACTIVATION
                                         </span>
-                                        <span className="text-3xl font-black italic tracking-tighter group-hover:scale-105 transition-transform">
-                                            {initStatus === 'STANDBY' ? 'CONTRACT' : initStatus}
+                                        <span className="text-3xl font-black tracking-widest uppercase">
+                                            {initStatus === 'STANDBY' ? 'Start Mission' : initStatus}
                                         </span>
                                     </div>
 
                                     {initStatus === 'BOOTING...' && (
                                         <motion.div
-                                            className="absolute bottom-0 left-0 h-[3px] bg-red-600 shadow-[0_0_15px_#f00]"
+                                            className="absolute bottom-0 left-1 right-1 h-1 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.8)]"
                                             initial={{ width: 0 }}
-                                            animate={{ width: '100%' }}
+                                            animate={{ width: 'calc(100% - 8px)' }}
                                             transition={{ duration: 2 }}
                                         />
                                     )}
@@ -636,10 +627,14 @@ export default function Home() {
                                     <motion.div
                                         animate={{ x: [-100, 100] }}
                                         transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
-                                        className="h-[1px] w-1/2 bg-red-600/30 mx-auto"
+                                        className="h-[1px] w-1/2 bg-cyan-600/30 mx-auto"
                                     />
                                 </div>
                             </div>
+
+                            <p className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase mt-4">
+                                Justice. Courage. Alliance.
+                            </p>
                         </motion.div>
                     </motion.div>
                 )}

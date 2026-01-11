@@ -288,6 +288,11 @@ export default function Home() {
     }, []);
 
     useEffect(() => {
+        if (gameState === 'locked') {
+            playBeep(440, 0.1);
+            setTimeout(() => playBeep(880, 0.1), 100);
+        }
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === 'Space' && gameState === 'done') {
                 setGameState('idle');
@@ -592,52 +597,80 @@ export default function Home() {
 
                 <AnimatePresence>
                     {(gameState === 'detecting' || gameState === 'locked') && (
-                        <div className="flex flex-col items-center gap-8 mb-32">
-                            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-black/90 p-8 border-l-8 border-red-600 relative overflow-hidden">
+                        <div className="flex flex-col items-center gap-12 mb-32">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-black/60 backdrop-blur-md p-10 border-t border-b border-red-600/30 relative overflow-hidden max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.8)]"
+                            >
                                 {isMicActive && (
                                     <motion.div
-                                        className="absolute bottom-0 left-0 h-1 bg-red-600"
-                                        animate={{ width: ["0%", "100%", "0%"] }}
+                                        className="absolute inset-0 bg-red-900/10 pointer-events-none"
+                                        animate={{ opacity: [0, 0.2, 0] }}
                                         transition={{ duration: 2, repeat: Infinity }}
                                     />
                                 )}
-                                <div className="flex justify-between items-center mb-4">
-                                    <p className="text-red-500 text-xs font-mono uppercase tracking-widest">
-                                        Signal: {isSynced ? 'SYNCHRONIZED' : 'DETECTING'}
-                                    </p>
-                                    {isMicActive ? (
-                                        <div className="flex items-center gap-1 text-red-500 animate-pulse">
-                                            <Mic size={10} />
-                                            <span className="text-[8px] font-mono font-bold tracking-widest">LISTENING...</span>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1 text-zinc-600">
-                                            <MicOff size={10} />
-                                            <span className="text-[8px] font-mono font-bold tracking-widest">OFF_LINE</span>
+                                <div className="flex justify-between items-center mb-6">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${gameState === 'locked' ? 'bg-red-600 animate-ping' : 'bg-zinc-600'}`} />
+                                        <p className="text-red-500 text-[10px] font-mono uppercase tracking-[0.4em] font-bold">
+                                            {gameState === 'locked' ? 'READY_FOR_VOICE_LINK' : 'SCANNING_SIGNAL'}
+                                        </p>
+                                    </div>
+                                    {isMicActive && (
+                                        <div className="flex items-center gap-1.5 text-red-500/80">
+                                            <Mic size={12} className="animate-pulse" />
+                                            <span className="text-[10px] font-mono font-bold tracking-widest">A-LINK_ACTIVE</span>
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-white text-3xl font-black italic text-center leading-tight mb-2">
-                                    「準備はいいよ。いつでも喚びな…。」
+
+                                <p className="text-white text-4xl font-black italic text-center leading-tight mb-8 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                                    {gameState === 'locked' ? "「 ... 喚べ。 」" : "「 いつでもいいよ。 」"}
                                 </p>
+
                                 <div className="h-4 flex items-center justify-center">
-                                    {lastHeard && (
-                                        <motion.p
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            key={lastHeard}
-                                            className="text-red-400 text-[10px] font-mono italic"
-                                        >
-                                            Heard: "{lastHeard}"
-                                        </motion.p>
-                                    )}
+                                    <AnimatePresence mode="wait">
+                                        {lastHeard && (
+                                            <motion.p
+                                                initial={{ opacity: 0, y: 5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0 }}
+                                                key={lastHeard}
+                                                className="text-red-400 text-[11px] font-mono italic tracking-widest"
+                                            >
+                                                &gt; TRACE: "{lastHeard}"
+                                            </motion.p>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
-                                <p className="text-zinc-500 text-[9px] font-mono text-center tracking-tighter uppercase mt-2">
-                                    {isMicActive ? "Say 'KON!' or tap below" : "Mic inactive. PLEASE TAP TO SUMMON"}
+                                <p className="text-zinc-500 text-[9px] font-mono text-center tracking-[0.2em] uppercase mt-6 opacity-40">
+                                    {isMicActive ? "Say 'KON!' to initiate summon" : "MIC_OFFLINE / TAP_SCREEN_TO_BYPASS"}
                                 </p>
                             </motion.div>
-                            {isSynced && <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 0.5 }} className="text-white font-black text-6xl italic">KON!</motion.div>}
+
+                            {isSynced && (
+                                <motion.div
+                                    animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.25, 0.1] }}
+                                    transition={{ repeat: Infinity, duration: 1.5 }}
+                                    className="text-red-600 font-black text-9xl italic select-none pointer-events-none blur-sm absolute"
+                                >
+                                    KON
+                                </motion.div>
+                            )}
                         </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Dramatic Vignette for Tension */}
+                <AnimatePresence>
+                    {gameState === 'locked' && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 pointer-events-none z-20 shadow-[inset_0_0_200px_rgba(0,0,0,1)] bg-black/40 bg-[radial-gradient(circle,transparent_40%,rgba(0,0,0,0.8)_100%)]"
+                        />
                     )}
                 </AnimatePresence>
 

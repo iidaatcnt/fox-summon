@@ -130,6 +130,7 @@ export default function Home() {
     const [isSpeechSupported, setIsSpeechSupported] = useState(true);
 
     const [isMicActive, setIsMicActive] = useState(false);
+    const [lastHeard, setLastHeard] = useState('');
 
     const webcamRef = useRef<any>(null);
     const battleAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -202,7 +203,8 @@ export default function Home() {
                 recognition.onresult = (event: any) => {
                     for (let i = event.resultIndex; i < event.results.length; i++) {
                         const text = event.results[i][0].transcript.trim();
-                        if (gameStateRef.current === 'locked' && FOX_TRIGGER_WORD.some(word => text.includes(word))) {
+                        setLastHeard(text);
+                        if (gameStateRef.current === 'locked' && (FOX_TRIGGER_WORD.some(word => text.includes(word)) || text.length > 5)) {
                             startSummon();
                         }
                     }
@@ -563,13 +565,13 @@ export default function Home() {
                             <h1 className="text-2xl font-black italic text-red-600 tracking-tighter">ANIME:REPRO_V1</h1>
                         </div>
                         <div className="flex gap-4 px-1">
-                            <div className={`flex items-center gap-1.5 transition-colors ${cameraPermission ? 'text-zinc-400' : 'text-red-500 animate-pulse'}`}>
+                            <div className={`flex items-center gap-1.5 transition-colors ${cameraPermission ? 'text-emerald-500' : 'text-red-500 animate-pulse'}`}>
                                 {cameraPermission ? <Camera size={14} /> : <VideoOff size={14} />}
-                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{cameraPermission ? 'V-LINK_OK' : 'V-LINK_NG'}</span>
+                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{cameraPermission ? 'V-LINK_ACTIVE' : 'V-LINK_NG'}</span>
                             </div>
-                            <div className={`flex items-center gap-1.5 transition-colors ${micPermission ? 'text-zinc-400' : 'text-red-500 animate-pulse'}`}>
+                            <div className={`flex items-center gap-1.5 transition-colors ${micPermission ? 'text-emerald-500' : 'text-red-500 animate-pulse'}`}>
                                 {micPermission ? <Mic size={14} /> : <MicOff size={14} />}
-                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{micPermission ? 'A-LINK_OK' : 'A-LINK_NG'}</span>
+                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{micPermission ? 'A-LINK_ACTIVE' : 'A-LINK_NG'}</span>
                             </div>
                         </div>
                     </div>
@@ -605,7 +607,19 @@ export default function Home() {
                                 <p className="text-white text-3xl font-black italic text-center leading-tight mb-2">
                                     「準備はいいよ。いつでも喚びな…。」
                                 </p>
-                                <p className="text-zinc-500 text-[9px] font-mono text-center tracking-tighter uppercase">
+                                <div className="h-4 flex items-center justify-center">
+                                    {lastHeard && (
+                                        <motion.p
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            key={lastHeard}
+                                            className="text-red-400 text-[10px] font-mono italic"
+                                        >
+                                            Heard: "{lastHeard}"
+                                        </motion.p>
+                                    )}
+                                </div>
+                                <p className="text-zinc-500 text-[9px] font-mono text-center tracking-tighter uppercase mt-2">
                                     {isMicActive ? "Say 'KON!' or tap below" : "Mic inactive. PLEASE TAP TO SUMMON"}
                                 </p>
                             </motion.div>

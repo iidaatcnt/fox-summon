@@ -344,7 +344,7 @@ export default function Home() {
         }
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.code === 'Space' && gameState === 'done') {
+            if (e.code === 'Space' && ['victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) {
                 setGameState('idle');
             }
         };
@@ -647,7 +647,7 @@ export default function Home() {
                         exit={{ opacity: 0, scale: 2, filter: 'blur(20px)' }}
                         className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
                     >
-                        <h2 className="text-[25vw] font-black italic text-red-600 drop-shadow-[0_0_50px_rgba(255,0,0,0.9)] filter contrast-150 tracking-tighter">
+                        <h2 className="text-[25vw] font-black italic text-cyan-500 drop-shadow-[0_0_50px_rgba(6,182,212,0.9)] filter contrast-150 tracking-tighter">
                             コン！
                         </h2>
                     </motion.div>
@@ -663,8 +663,8 @@ export default function Home() {
                         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                         className="absolute z-50 pointer-events-none w-full h-full origin-center"
                     >
-                        <img src="/fox02.png" className="w-full h-full object-cover brightness-90 shadow-[0_0_100px_rgba(255,0,0,0.5)]" alt="Attack Fox" />
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0.8, 0] }} transition={{ duration: 0.5 }} className="absolute inset-0 bg-red-600 mix-blend-overlay" />
+                        <img src="/fox02.png" className="w-full h-full object-cover brightness-90 shadow-[0_0_100px_rgba(6,182,212,0.5)]" alt="Attack Fox" />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0.8, 0] }} transition={{ duration: 0.5 }} className="absolute inset-0 bg-cyan-600 mix-blend-overlay" />
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -730,13 +730,13 @@ export default function Home() {
                 )}
             </AnimatePresence>
 
-            <div className={`absolute top-4 right-4 w-32 h-24 z-40 rounded-lg overflow-hidden border border-red-600/20 shadow-xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute top-4 right-4 w-32 h-24 z-40 rounded-lg overflow-hidden border border-cyan-500/20 shadow-xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="relative w-full h-full pointer-events-auto">
                     <Webcam ref={webcamRef} audio={false} className="w-full h-full object-cover grayscale contrast-125 brightness-125 blur-[1px]" onUserMedia={() => setCameraPermission(true)} videoConstraints={{ facingMode: "user" }} />
                     <div className="absolute inset-0 pointer-events-none">
-                        <motion.div className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]" animate={{ top: ["0%", "100%", "0%"] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
-                        <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">{isFoxHand ? "HAND_READY" : "SCANNING_HAND"}</div>
-                        {handPosition && <div className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#f00]" style={{ left: `${handPosition.x * 100}%`, top: `${handPosition.y * 100}%`, transform: 'translate(-50%, -50%)' }} />}
+                        <motion.div className="w-full h-[2px] bg-cyan-500/50 shadow-[0_0_8px_rgba(6,182,212,0.8)]" animate={{ top: ["0%", "100%", "0%"] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
+                        <div className="absolute bottom-2 right-8 text-[8px] font-mono text-cyan-500/80 animate-pulse">{isFoxHand ? "HERO_READY" : "SCANNING"}</div>
+                        {handPosition && <div className="absolute w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_#0ff]" style={{ left: `${handPosition.x * 100}%`, top: `${handPosition.y * 100}%`, transform: 'translate(-50%, -50%)' }} />}
                     </div>
                 </div>
             </div>
@@ -748,139 +748,188 @@ export default function Home() {
                 </Canvas>
             </div>
 
+            {/* Kizuna: Hand Sync Silhouette */}
             <AnimatePresence>
-                {(gameState === 'detecting' || gameState === 'locked') && (
-                    <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: isSynced ? 0.3 : 0.6, scale: isFoxHand ? 1 : 0.95 }} exit={{ opacity: 0 }} className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none">
-                        <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-red-600' : 'text-white'}`}>
+                {(gameState === 'idle' || gameState === 'detecting' || gameState === 'locked') && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: isSynced ? 0.3 : 0.6, scale: isFoxHand ? 1 : 0.95 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none"
+                    >
+                        <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-cyan-400' : 'text-white'}`}>
                             <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
                                 <path d="M20,80 Q30,40 25,20 L35,45 Q50,40 65,45 L75,20 Q70,40 80,80 Z" />
                                 <circle cx="50" cy="55" r="5" className="animate-pulse" />
                             </svg>
+                            <div className="text-center mt-4">
+                                <span className="text-[10px] font-mono font-black tracking-[0.5em] uppercase opacity-50">
+                                    {isSynced ? "BOND_LINKED" : (isFoxHand ? "ALIGNHAND" : "AWAITING_GESTURE")}
+                                </span>
+                            </div>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-8 pointer-events-none">
+                {/* Top Status Bar */}
                 <div className="w-full flex justify-between items-start">
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-red-600 animate-pulse rounded-full" />
-                            <h1 className="text-2xl font-black italic text-red-600 tracking-tighter">ANIME:REPRO_V1</h1>
+                            <div className="w-3 h-3 bg-cyan-500 animate-pulse rounded-full" />
+                            <h1 className="text-2xl font-black italic text-cyan-500 tracking-tighter uppercase px-2 py-1 border-b-2 border-cyan-500/30">Hero_Alliance_V2</h1>
                         </div>
                         <div className="flex gap-4 px-1">
-                            <div className={`flex items-center gap-1.5 transition-colors ${cameraPermission ? 'text-emerald-500' : 'text-red-500 animate-pulse'}`}>
+                            <div className={`flex items-center gap-1.5 transition-colors ${cameraPermission ? 'text-cyan-400' : 'text-red-500 animate-pulse'}`}>
                                 {cameraPermission ? <Camera size={14} /> : <VideoOff size={14} />}
-                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{cameraPermission ? 'V-LINK_ACTIVE' : 'V-LINK_NG'}</span>
+                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{cameraPermission ? 'V-LINK_OK' : 'V-LINK_NG'}</span>
                             </div>
-                            <div className={`flex items-center gap-1.5 transition-colors ${micPermission ? 'text-emerald-500' : 'text-red-500 animate-pulse'}`}>
+                            <div className={`flex items-center gap-1.5 transition-colors ${micPermission ? 'text-cyan-400' : 'text-red-500 animate-pulse'}`}>
                                 {micPermission ? <Mic size={14} /> : <MicOff size={14} />}
-                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{micPermission ? 'A-LINK_ACTIVE' : 'A-LINK_NG'}</span>
+                                <span className="text-[9px] font-mono font-bold leading-none tracking-tighter">{micPermission ? 'A-LINK_OK' : 'A-LINK_NG'}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* Bottom Instruction Panel */}
                 <AnimatePresence>
                     {(gameState === 'detecting' || gameState === 'locked') && (
-                        <div className="flex flex-col items-center gap-12 mb-32">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="bg-black/60 backdrop-blur-md p-10 border-t border-b border-red-600/30 relative overflow-hidden max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.8)]"
-                            >
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            className="flex flex-col items-center gap-12 mb-32"
+                        >
+                            <div className="bg-black/80 backdrop-blur-md p-10 border-t border-b border-cyan-500/30 relative overflow-hidden max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.9)] rounded-lg pointer-events-auto">
                                 {isMicActive && (
                                     <motion.div
-                                        className="absolute inset-0 bg-red-900/10 pointer-events-none"
+                                        className="absolute inset-0 bg-cyan-900/10 pointer-events-none"
                                         animate={{ opacity: [0, 0.2, 0] }}
                                         transition={{ duration: 2, repeat: Infinity }}
                                     />
                                 )}
                                 <div className="flex justify-between items-center mb-6">
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${gameState === 'locked' ? 'bg-red-600 animate-ping' : 'bg-zinc-600'}`} />
-                                        <p className="text-red-500 text-[10px] font-mono uppercase tracking-[0.4em] font-bold">
-                                            {gameState === 'locked' ? 'READY_FOR_VOICE_LINK' : 'SCANNING_SIGNAL'}
-                                        </p>
+                                        <div className="w-2 h-2 bg-cyan-500 rounded-full animate-ping" />
+                                        <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest">Acoustic Monitoring...</span>
                                     </div>
                                     {isMicActive && (
-                                        <div className="flex items-center gap-1.5 text-red-500/80">
+                                        <div className="flex items-center gap-1.5 text-cyan-400/80">
                                             <Mic size={12} className="animate-pulse" />
-                                            <span className="text-[10px] font-mono font-bold tracking-widest">A-LINK_ACTIVE</span>
+                                            <span className="text-[10px] font-mono font-bold tracking-widest uppercase">Live</span>
                                         </div>
                                     )}
                                 </div>
-
-                                <p className="text-white text-4xl font-black italic text-center leading-tight mb-8 drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                                    {gameState === 'locked' ? "「 ... 喚べ。 」" : "「 いつでもいいよ。 」"}
-                                </p>
-
-                                <div className="h-4 flex items-center justify-center">
-                                    <AnimatePresence mode="wait">
-                                        {lastHeard && (
-                                            <motion.p
-                                                initial={{ opacity: 0, y: 5 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0 }}
-                                                key={lastHeard}
-                                                className="text-red-400 text-[11px] font-mono italic tracking-widest"
-                                            >
-                                                &gt; TRACE: "{lastHeard}"
-                                            </motion.p>
-                                        )}
-                                    </AnimatePresence>
+                                <div className="space-y-4">
+                                    <div className="flex items-end gap-2">
+                                        <span className="text-white text-5xl font-black italic tracking-tighter uppercase leading-none">Hero</span>
+                                        <span className="text-cyan-500 text-sm font-mono font-bold pb-1 tracking-[0.3em]">LINK_INIT</span>
+                                    </div>
+                                    <p className="text-zinc-400 text-xs font-mono leading-relaxed uppercase">
+                                        &gt; 狐の手をカメラの中央に合わせてください。<br />
+                                        &gt; リンクが完了すると覚醒状態に入ります。<br />
+                                        &gt; 合言葉は「コン！」です。
+                                    </p>
                                 </div>
-                                <p className="text-zinc-500 text-[9px] font-mono text-center tracking-[0.2em] uppercase mt-6 opacity-40">
-                                    {isMicActive ? "Say 'KON!' to initiate summon" : "MIC_OFFLINE / TAP_SCREEN_TO_BYPASS"}
-                                </p>
-                            </motion.div>
+                                <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/5">
+                                    <div className={`w-2 h-2 rounded-full ${gameState === 'locked' ? 'bg-cyan-500 animate-ping' : 'bg-zinc-600'}`} />
+                                    <p className="text-cyan-500 text-[10px] font-mono uppercase tracking-[0.4em] font-bold">
+                                        {gameState === 'locked' ? 'READY_FOR_VOICE_LINK' : 'SCANNING_SIGNAL'}
+                                    </p>
+                                </div>
+                            </div>
 
-                            {isSynced && (
-                                <motion.div
-                                    animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.25, 0.1] }}
-                                    transition={{ repeat: Infinity, duration: 1.5 }}
-                                    className="text-red-600 font-black text-9xl italic select-none pointer-events-none blur-sm absolute"
-                                >
-                                    KON
-                                </motion.div>
-                            )}
-                        </div>
+                            <p className="text-white text-4xl font-black italic text-center leading-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                                {gameState === 'locked' ? "「 ... 喚べ。 」" : "「 いつでもいいよ。 」"}
+                            </p>
+
+                            <div className="h-4 flex items-center justify-center">
+                                <AnimatePresence mode="wait">
+                                    {lastHeard && (
+                                        <motion.p
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0 }}
+                                            key={lastHeard}
+                                            className="text-cyan-400 text-[11px] font-mono italic tracking-widest"
+                                        >
+                                            &gt; TRACE: "{lastHeard}"
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Dramatic Vignette for Tension */}
-                <AnimatePresence>
-                    {gameState === 'locked' && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 pointer-events-none z-20 shadow-[inset_0_0_200px_rgba(0,0,0,1)] bg-black/40 bg-[radial-gradient(circle,transparent_40%,rgba(0,0,0,0.8)_100%)]"
-                        />
-                    )}
-                </AnimatePresence>
-
-                {gameState === 'done' && (
-                    <motion.div initial={{ opacity: 0, scale: 2 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4 bg-red-600 p-8 shadow-2xl">
-                        <h2 className="text-5xl font-black italic">MISSION COMPLETE</h2>
-                        <button className="pointer-events-auto bg-white text-black px-10 py-3 font-black text-xl italic" onClick={() => setGameState('idle')}>Retry Summoning</button>
-                    </motion.div>
-                )}
-
+                {/* Bottom Bar: System Info */}
                 <div className="w-full flex justify-between items-end">
-                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_ERROR'}</div>
-                    <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-red-600 text-xs font-bold">
+                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                        Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_ERROR'}
+                    </div>
+                    <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-cyan-600 text-xs font-bold">
                         <span className="text-zinc-500 mr-2">SYSTEM:</span>
-                        <span className="text-red-500">
+                        <span className="text-cyan-500 uppercase">
                             {gameState === 'locked' ? 'READY_FOR_SUMMON' :
                                 gameState === 'cooloff' ? 'FAREWELL' :
                                     gameState === 'evaporating' ? 'DEPARTING...' :
-                                        gameState.toUpperCase()}
+                                        gameState}
                         </span>
                     </div>
                 </div>
             </div>
 
+            {/* Background KON text during link */}
+            <AnimatePresence>
+                {isSynced && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.25, 0.1] }}
+                        exit={{ opacity: 0 }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="fixed inset-0 flex items-center justify-center z-10 pointer-events-none"
+                    >
+                        <span className="text-cyan-600 font-black text-[30vw] italic select-none blur-sm uppercase opacity-20">KON</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Dramatic Vignette for Tension */}
+            <AnimatePresence>
+                {gameState === 'locked' && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 pointer-events-none z-20 shadow-[inset_0_0_200px_rgba(0,0,0,1)] bg-black/40 bg-[radial-gradient(circle,transparent_40%,rgba(0,0,0,0.8)_100%)]"
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Retry Guide at the end */}
+            <AnimatePresence>
+                {gameState === 'done' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="absolute bottom-12 inset-x-0 z-50 flex flex-col items-center gap-4 pointer-events-none"
+                    >
+                        <div className="pointer-events-auto bg-black/80 backdrop-blur-xl border border-cyan-500/50 px-8 py-4 rounded-full shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                            <button
+                                onClick={() => setGameState('idle')}
+                                className="text-cyan-400 font-black italic tracking-widest text-lg hover:text-white transition-colors"
+                            >
+                                PRESS <span className="text-white mx-2 outline px-2 rounded-sm outline-1 outline-white">SPACE</span> TO RESTART
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Hidden click bypass for testing/touch */}
             <div className="absolute inset-0 z-50 opacity-0 cursor-crosshair" onClick={() => isSynced && startSummon()} />
         </main>
     );

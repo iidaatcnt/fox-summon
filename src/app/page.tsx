@@ -97,15 +97,16 @@ const FoxScene = ({ state }: { state: string }) => {
                 setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.2));
                 setOpac(1);
             } else if (state === 'victory') {
-                setOpac(0); // Hide fox to show the dead_bug background clearly
+                setOpac(0);
             } else if (state === 'cooloff') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 11, 0.1));
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
+                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 10, 0.05)); // Slightly smaller to see the whole fox
+                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.08)); // Stable fade in
             } else if (state === 'evaporating') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => prev * 1.005);
-                setOpac(prev => Math.max(0, prev - 0.003));
+                // Slower fade out for dramatic effect
+                setScaleFactor(prev => prev * 1.003);
+                setOpac(prev => Math.max(0, prev - 0.002));
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -131,7 +132,7 @@ const FoxScene = ({ state }: { state: string }) => {
                     isRising={state === 'evaporating'}
                 />
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[0, 0, -2]} scale={[scaleFactor, scaleFactor, 1]} rotation={[0, 0, 0]}>
+            <mesh ref={meshRef} position={[0, 0.5, -2.5]} scale={[scaleFactor, scaleFactor, 1]} rotation={[0, 0, 0]}>
                 <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
                     map={activeTex}

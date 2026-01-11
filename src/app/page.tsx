@@ -11,7 +11,11 @@ import { useHandTracking } from '@/hooks/useHandTracking';
 import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 
-const FOX_TRIGGER_WORD = ['コン', 'こん', 'kon', 'konn', 'こんっ', 'こんー', 'こーん', 'こん！', 'コン！', 'こん。', 'コン。'];
+const FOX_TRIGGER_WORD = [
+    'コン', 'こん', 'kon', 'konn', 'こんっ', 'こんー', 'こーん',
+    '今', '婚', '混', '根', '金', '来ん', '魂', '紺',
+    'come', 'corn', 'cone', 'call', 'go', 'com'
+];
 const WEB_APP_TITLE = 'FOX:SUMMON_NEXT';
 
 // --- 3D Components ---
@@ -264,7 +268,10 @@ export default function Home() {
                             const isMatch = FOX_TRIGGER_WORD.some(word =>
                                 text === word || text.includes(word)
                             );
-                            if (isMatch || text.length > 5) {
+                            // Broad phonetic check for 'k-vowel-n' patterns to catch varied transcriptions
+                            const isPhoneticMatch = /k[oaui]n/i.test(text) || /[こコ][んン]/.test(text);
+
+                            if (isMatch || isPhoneticMatch || (text.length > 3 && text.includes('ん'))) {
                                 startSummon();
                             }
                         }
@@ -832,7 +839,8 @@ export default function Home() {
                                     <p className="text-zinc-400 text-xs font-mono leading-relaxed uppercase">
                                         &gt; 狐の手をカメラの中央に合わせてください。<br />
                                         &gt; リンクが完了すると覚醒状態に入ります。<br />
-                                        &gt; 合言葉は「コン！」です。
+                                        &gt; 合言葉は「コン！」です。<br />
+                                        <span className="text-[9px] opacity-40 mt-1 block tracking-wider">※ 音声が反応しない場合は画面をタップ</span>
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/5">

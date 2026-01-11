@@ -486,9 +486,9 @@ export default function Home() {
                 {gameState === 'done' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-red-900/40 mix-blend-multiply" />}
             </div>
 
-            <div className={`absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute top-4 right-4 w-32 h-24 z-40 rounded-lg overflow-hidden border border-red-600/20 shadow-xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="relative w-full h-full pointer-events-auto">
-                    <Webcam ref={webcamRef} audio={false} className="w-full h-full object-cover grayscale contrast-125 brightness-125" onUserMedia={() => setCameraPermission(true)} videoConstraints={{ facingMode: "user" }} />
+                    <Webcam ref={webcamRef} audio={false} className="w-full h-full object-cover grayscale contrast-125 brightness-125 blur-[1px]" onUserMedia={() => setCameraPermission(true)} videoConstraints={{ facingMode: "user" }} />
                     <div className="absolute inset-0 pointer-events-none">
                         <motion.div className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]" animate={{ top: ["0%", "100%", "0%"] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
                         <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">{isFoxHand ? "HAND_READY" : "SCANNING_HAND"}</div>

@@ -9,7 +9,7 @@ import { Mic, MicOff, Camera, VideoOff } from 'lucide-react';
 import * as THREE from 'three';
 import { useHandTracking } from '@/hooks/useHandTracking';
 
-const FOX_TRIGGER_WORD = ['コン', 'こん'];
+const FOX_TRIGGER_WORD = ['コン', 'こん', 'kon', 'konn', 'こんっ', 'こんー', 'こーん', 'こん！', 'コン！', 'こん。', 'コン。'];
 const WEB_APP_TITLE = 'FOX:SUMMON_NEXT';
 
 // --- 3D Components ---
@@ -202,10 +202,21 @@ export default function Home() {
 
                 recognition.onresult = (event: any) => {
                     for (let i = event.resultIndex; i < event.results.length; i++) {
-                        const text = event.results[i][0].transcript.trim();
-                        setLastHeard(text);
-                        if (gameStateRef.current === 'locked' && (FOX_TRIGGER_WORD.some(word => text.includes(word)) || text.length > 5)) {
-                            startSummon();
+                        const transcript = event.results[i][0].transcript.trim();
+                        // Normalize: remove punctuation and lowercase
+                        const text = transcript.replace(/[。？！!.?、]$/, "").toLowerCase();
+                        setLastHeard(transcript);
+
+                        // Clear lastHeard after 3 seconds
+                        setTimeout(() => setLastHeard(prev => prev === transcript ? '' : prev), 3000);
+
+                        if (gameStateRef.current === 'locked') {
+                            const isMatch = FOX_TRIGGER_WORD.some(word =>
+                                text === word || text.includes(word)
+                            );
+                            if (isMatch || text.length > 5) {
+                                startSummon();
+                            }
                         }
                     }
                 };
@@ -399,7 +410,9 @@ export default function Home() {
     };
 
     const startSummon = () => {
-        if (['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
+        // Use Ref to avoid stale closure issues
+        if (['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameStateRef.current)) return;
+
         playSummonSound();
         setGameState('summoning');
         setTimeout(() => {

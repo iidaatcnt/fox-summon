@@ -633,10 +633,13 @@ export default function Home() {
                                     )}
                                 </button>
 
-                                <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
-                                    <span className="text-[10px] font-mono text-white/50 uppercase tracking-[0.3em]">Press</span>
-                                    <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-mono text-cyan-400 border border-white/20">SPACE</span>
-                                    <span className="text-[10px] font-mono text-white/50 uppercase tracking-[0.3em]">to activate</span>
+                                <div className="mt-4 flex items-center justify-center gap-3 opacity-50 transition-all group-hover:opacity-100">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="bg-white/10 px-2 py-0.5 rounded text-[9px] font-mono text-cyan-400 border border-white/20">SPACE</span>
+                                        <span className="text-[9px] font-mono text-white/50 uppercase tracking-[0.2em]">OR</span>
+                                        <span className="bg-white/10 px-2 py-0.5 rounded text-[9px] font-mono text-cyan-400 border border-white/20 uppercase tracking-widest leading-none">Tap Screen</span>
+                                    </div>
+                                    <span className="text-[9px] font-mono text-white/50 uppercase tracking-[0.3em]">to activate</span>
                                 </div>
                             </div>
 
@@ -930,17 +933,31 @@ export default function Home() {
                         <div className="pointer-events-auto bg-black/80 backdrop-blur-xl border border-cyan-500/50 px-8 py-4 rounded-full shadow-[0_0_30px_rgba(6,182,212,0.3)]">
                             <button
                                 onClick={() => setGameState('idle')}
-                                className="text-cyan-400 font-black italic tracking-widest text-lg hover:text-white transition-colors"
+                                className="text-cyan-400 font-black italic tracking-widest text-lg hover:text-white transition-colors group flex items-center gap-3"
                             >
-                                PRESS <span className="text-white mx-2 outline px-2 rounded-sm outline-1 outline-white">SPACE</span> TO RESTART
+                                <span>PRESS</span>
+                                <span className="text-white outline px-2 rounded-sm outline-1 outline-white not-italic">SPACE</span>
+                                <span>OR</span>
+                                <span className="text-white border-b-2 border-white not-italic font-mono text-xs pb-0.5">TAP TO RESTART</span>
                             </button>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Hidden click bypass for testing/touch */}
-            <div className="absolute inset-0 z-50 opacity-0 cursor-crosshair" onClick={() => isSynced && startSummon()} />
+            {/* Hidden click layer for Start / Summon / Restart */}
+            <div
+                className="absolute inset-0 z-[100] opacity-0 cursor-crosshair"
+                onClick={() => {
+                    if (!isInitialized && initStatus === 'STANDBY') {
+                        initializeSystem();
+                    } else if (['victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) {
+                        setGameState('idle');
+                    } else if (isSynced) {
+                        startSummon();
+                    }
+                }}
+            />
         </main>
     );
 }

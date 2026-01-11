@@ -126,7 +126,7 @@ const FoxScene = ({ state }: { state: string }) => {
             stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 18, 0.2);
             stateRefs.current.opac = 1;
         } else if (state === 'victory' || state === 'cooloff') {
-            stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 8.5, 0.1);
+            stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 12, 0.1);
             stateRefs.current.opac = 1;
         } else if (state === 'evaporating' || state === 'done') {
             stateRefs.current.scale *= 1.001;
@@ -148,18 +148,18 @@ const FoxScene = ({ state }: { state: string }) => {
                     color={state === 'evaporating' ? "#ffffff" : "#ff004c"}
                     isRising={state === 'evaporating'}
                 />
+                <mesh ref={meshRef} position={[0, 0, -2.5]}>
+                    <planeGeometry args={[1, 1]} />
+                    <meshBasicMaterial
+                        ref={matRef}
+                        map={activeTex}
+                        transparent
+                        blending={state === 'evaporating' ? THREE.AdditiveBlending : THREE.NormalBlending}
+                        depthTest={false}
+                        opacity={0}
+                    />
+                </mesh>
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[0, 0.5, -2.5]}>
-                <planeGeometry args={[1, 1]} />
-                <meshBasicMaterial
-                    ref={matRef}
-                    map={activeTex}
-                    transparent
-                    blending={state === 'evaporating' ? THREE.AdditiveBlending : THREE.NormalBlending}
-                    depthTest={false}
-                    opacity={0}
-                />
-            </mesh>
         </group>
     );
 };

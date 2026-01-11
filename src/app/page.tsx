@@ -123,70 +123,121 @@ export default function Home() {
     const [gameState, setGameState] = useState('idle');
     const [bgFrame, setBgFrame] = useState(0);
     const [cameraPermission, setCameraPermission] = useState(false);
+    const [micPermission, setMicPermission] = useState(false);
     const [webcamEnabled, setWebcamEnabled] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [initStatus, setInitStatus] = useState('STANDBY');
+
     const webcamRef = useRef<any>(null);
     const battleAudioRef = useRef<HTMLAudioElement | null>(null);
     const endingAudioRef = useRef<HTMLAudioElement | null>(null);
+    const recognitionRef = useRef<any>(null);
+    const activelyListeningRef = useRef(false);
 
-    // Initialize audio and handle browser autoplay policy
+    // Use a ref for gameState to avoid restarting recognition on every state change
+    const gameStateRef = useRef(gameState);
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
+
+    // Initial setup for audio objects (no play yet)
     useEffect(() => {
         battleAudioRef.current = new Audio('/battle.mp3');
         battleAudioRef.current.loop = true;
         endingAudioRef.current = new Audio('/ending.mp3');
         endingAudioRef.current.loop = true;
 
-        const handleFirstInteraction = () => {
-            if (gameState === 'idle' || gameState === 'detecting') {
-                battleAudioRef.current?.play().catch(() => { });
-            }
-            window.removeEventListener('click', handleFirstInteraction);
-            window.removeEventListener('keydown', handleFirstInteraction);
-            window.removeEventListener('touchstart', handleFirstInteraction);
-        };
-
-        window.addEventListener('click', handleFirstInteraction);
-        window.addEventListener('keydown', handleFirstInteraction);
-        window.addEventListener('touchstart', handleFirstInteraction);
-
         return () => {
             battleAudioRef.current?.pause();
             endingAudioRef.current?.pause();
-            window.removeEventListener('click', handleFirstInteraction);
-            window.removeEventListener('keydown', handleFirstInteraction);
-            window.removeEventListener('touchstart', handleFirstInteraction);
+            recognitionRef.current?.stop();
         };
     }, []);
 
-    // Manage BGM states
+    const initializeSystem = async () => {
+        setInitStatus('BOOTING...');
+
+        try {
+            // 1. Request Camera & Mic Permission explicitly
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            setCameraPermission(true);
+            setMicPermission(true);
+            // We stop the temporary stream tracks but permissions are now granted for the session
+            stream.getTracks().forEach(track => track.stop());
+
+            setInitStatus('LINKING BGM...');
+            // 2. Start BGM (Required user gesture - this function is called on click)
+            battleAudioRef.current?.play().catch(e => console.error("BGM Start Error:", e));
+
+            setInitStatus('SYNCING VOICE...');
+            // 3. Initialize Speech Recognition
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'ja-JP';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = (event: any) => {
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const text = event.results[i][0].transcript.trim();
+                        if (gameStateRef.current === 'locked' && FOX_TRIGGER_WORD.some(word => text.includes(word))) {
+                            startSummon();
+                        }
+                    }
+                };
+
+                recognition.onend = () => {
+                    if (activelyListeningRef.current) {
+                        try { recognition.start(); } catch (e) { }
+                    }
+                };
+
+                recognition.onerror = (event: any) => {
+                    console.error('Speech error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        setMicPermission(false);
+                        activelyListeningRef.current = false;
+                    }
+                };
+
+                recognitionRef.current = recognition;
+                activelyListeningRef.current = true;
+                recognition.start();
+            }
+
+            setInitStatus('COMPLETED');
+            setTimeout(() => {
+                setIsInitialized(true);
+                setWebcamEnabled(true);
+            }, 800);
+
+        } catch (err) {
+            console.error("Initialization failed:", err);
+            setInitStatus('ERROR: ACCESS DENIED');
+            alert("カメラとマイクの許可が必要です。ブラウザの設定を確認してください。");
+        }
+    };
+
+    // Manage BGM transitions
     useEffect(() => {
+        if (!isInitialized) return;
+
         if (['idle', 'detecting'].includes(gameState)) {
-            // Transition back to idle/detecting (on retry or start)
             endingAudioRef.current?.pause();
             if (endingAudioRef.current) endingAudioRef.current.currentTime = 0;
             battleAudioRef.current?.play().catch(() => { });
         } else if (['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating'].includes(gameState)) {
-            // Hand recognized or summon in progress
             battleAudioRef.current?.pause();
             if (battleAudioRef.current) battleAudioRef.current.currentTime = 0;
             endingAudioRef.current?.pause();
         } else if (gameState === 'done') {
-            // Mission complete, waiting state
             battleAudioRef.current?.pause();
             endingAudioRef.current?.play().catch(() => { });
         }
-    }, [gameState]);
-
-    // Initial delay for camera to "boot up"
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setWebcamEnabled(true);
-        }, 1500);
-        return () => clearTimeout(timer);
-    }, []);
+    }, [gameState, isInitialized]);
 
     const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission + webcamEnabled);
-
-    // Sync check for the hand silhouette
     const [isSynced, setIsSynced] = useState(false);
 
     useEffect(() => {
@@ -194,17 +245,14 @@ export default function Home() {
             setIsSynced(false);
             return;
         }
-        // Silhouette is at center area
         const targetX = 0.5;
         const targetY = 0.5;
         const dist = Math.sqrt(Math.pow(handPosition.x - targetX, 2) + Math.pow(handPosition.y - targetY, 2));
         setIsSynced(dist < 0.18);
     }, [isFoxHand, handPosition]);
 
-    // Slow swaying background (yurari-yurari) and occasional frame swap
     useEffect(() => {
         const interval = setInterval(() => {
-            // Randomly swap image every few seconds instead of rapid flickering
             if (Math.random() > 0.7) {
                 setBgFrame(prev => (prev + 1) % 2);
             }
@@ -212,7 +260,6 @@ export default function Home() {
         return () => clearInterval(interval);
     }, []);
 
-    // Keyboard support: Space to retry after mission complete
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.code === 'Space' && gameState === 'done') {
@@ -240,9 +287,7 @@ export default function Home() {
     };
 
     useEffect(() => {
-        // Once locked or summoning, we don't fall back to idle via hand tracking
         if (['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
-
         if (isSynced) {
             setGameState('locked');
             playBeep(440, 0.2);
@@ -253,78 +298,6 @@ export default function Home() {
         }
     }, [isSynced, isFoxHand, gameState]);
 
-    // Use a ref for gameState to avoid restarting recognition on every state change
-    const gameStateRef = useRef(gameState);
-    useEffect(() => {
-        gameStateRef.current = gameState;
-    }, [gameState]);
-
-    const recognitionRef = useRef<any>(null);
-
-    useEffect(() => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.error('Speech recognition not supported');
-            return;
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ja-JP';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognitionRef.current = recognition;
-
-        let activelyListening = false;
-
-        recognition.onresult = (event: any) => {
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const text = event.results[i][0].transcript.trim();
-                if (gameStateRef.current === 'locked' && FOX_TRIGGER_WORD.some(word => text.includes(word))) {
-                    startSummon();
-                }
-            }
-        };
-
-        recognition.onend = () => {
-            if (activelyListening) {
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.error('Speech recognition restart failed:', e);
-                }
-            }
-        };
-
-        recognition.onerror = (event: any) => {
-            if (event.error === 'not-allowed') {
-                activelyListening = false;
-            }
-        };
-
-        // Function to start recognition on user gesture
-        const startRecognitionOnGesture = () => {
-            if (!activelyListening) {
-                activelyListening = true;
-                try {
-                    recognition.start();
-                    console.log('Speech recognition started by user gesture');
-                } catch (e) {
-                    console.error('Speech recognition start failed:', e);
-                }
-            }
-        };
-
-        window.addEventListener('click', startRecognitionOnGesture);
-        window.addEventListener('touchstart', startRecognitionOnGesture);
-
-        return () => {
-            activelyListening = false;
-            recognition.stop();
-            window.removeEventListener('click', startRecognitionOnGesture);
-            window.removeEventListener('touchstart', startRecognitionOnGesture);
-        };
-    }, []);
-
     const playSummonSound = () => {
         try {
             const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -332,54 +305,43 @@ export default function Home() {
             masterGain.connect(audioCtx.destination);
             masterGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
 
-            // 1. Ominous Buildup (Rising frequency and volume)
             const buildUp = audioCtx.createOscillator();
             buildUp.type = 'sawtooth';
             buildUp.frequency.setValueAtTime(40, audioCtx.currentTime);
             buildUp.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 1.2);
-
             const buildGain = audioCtx.createGain();
             buildGain.gain.setValueAtTime(0, audioCtx.currentTime);
             buildGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 1.0);
-
             const buildFilter = audioCtx.createBiquadFilter();
             buildFilter.type = 'lowpass';
             buildFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
             buildFilter.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 1.2);
-
             buildUp.connect(buildFilter);
             buildFilter.connect(buildGain);
             buildGain.connect(masterGain);
             buildUp.start();
             buildUp.stop(audioCtx.currentTime + 1.5);
 
-            // 2. Heavy Whoosh / Wind
             const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 4, audioCtx.sampleRate);
             const noiseData = noiseBuffer.getChannelData(0);
             for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
-
             const whoosh = audioCtx.createBufferSource();
             whoosh.buffer = noiseBuffer;
             const whooshFilter = audioCtx.createBiquadFilter();
             whooshFilter.type = 'bandpass';
             whooshFilter.frequency.setValueAtTime(100, audioCtx.currentTime);
             whooshFilter.frequency.exponentialRampToValueAtTime(4000, audioCtx.currentTime + 1.2);
-
             const whooshGain = audioCtx.createGain();
             whooshGain.gain.setValueAtTime(0, audioCtx.currentTime);
             whooshGain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 1.0);
             whooshGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.0);
-
             whoosh.connect(whooshFilter);
             whooshFilter.connect(whooshGain);
             whooshGain.connect(masterGain);
             whoosh.start();
 
-            // 3. THE GRAND BITE (Impact at 1.2s)
             setTimeout(() => {
                 const now = audioCtx.currentTime;
-
-                // A. Sub-bass Explosion
                 const impact = audioCtx.createOscillator();
                 impact.type = 'triangle';
                 impact.frequency.setValueAtTime(150, now);
@@ -392,7 +354,6 @@ export default function Home() {
                 impact.start(now);
                 impact.stop(now + 2.0);
 
-                // B. Hard Crunch
                 const crunch = audioCtx.createBufferSource();
                 crunch.buffer = noiseBuffer;
                 const crunchFilter = audioCtx.createBiquadFilter();
@@ -407,7 +368,6 @@ export default function Home() {
                 crunch.start(now);
                 crunch.stop(now + 1.0);
 
-                // C. High-pitched Ringing (Aftershock)
                 const ring = audioCtx.createOscillator();
                 ring.type = 'sine';
                 ring.frequency.setValueAtTime(1000, now);
@@ -419,7 +379,6 @@ export default function Home() {
                 ring.start(now);
                 ring.stop(now + 2.8);
             }, 1200);
-
         } catch (e) { }
     };
 
@@ -427,240 +386,160 @@ export default function Home() {
         if (['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) return;
         playSummonSound();
         setGameState('summoning');
-
-        // 1. Attack Moment (fox02)
         setTimeout(() => {
             setGameState('closeup');
-
-            // 2. Victory Announcement (dead_bug.jpg only)
             setTimeout(() => {
                 setGameState('victory');
-
-                // 3. Sitting Fox Appearing (fox03)
                 setTimeout(() => {
                     setGameState('cooloff');
-
-                    // 4. Final slow evaporation
                     setTimeout(() => {
                         setGameState('evaporating');
                         setTimeout(() => setGameState('done'), 5000);
                     }, 4000);
-                }, 3000); // Display victory scene for 3 seconds
-            }, 1500); // Attack duration
+                }, 3000);
+            }, 1500);
         }, 1200);
     };
 
     const showWebcam = ['idle', 'detecting'].includes(gameState) && webcamEnabled;
-
     const isBiting = ['summoning', 'closeup'].includes(gameState);
-    const isFoxEnding = ['cooloff', 'evaporating'].includes(gameState);
 
     return (
         <main className="relative w-full h-screen overflow-hidden bg-black text-white font-sans">
-            {/* Ultra Background: Massive Fox Backdrop during Summoning */}
-            {/* Ultra Background: Massive Fox Backdrop during Summoning */}
+            <AnimatePresence>
+                {!isInitialized && (
+                    <motion.div
+                        key="startup"
+                        exit={{ opacity: 0, y: -20 }}
+                        className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center"
+                    >
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative z-10 space-y-8 max-w-md"
+                        >
+                            <div className="space-y-2">
+                                <h1 className="text-4xl font-black italic text-red-600 tracking-tighter">FOX:SUMMON_NEXT</h1>
+                                <p className="text-zinc-400 text-xs font-mono tracking-widest uppercase">System Initialization Required</p>
+                            </div>
+
+                            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg space-y-4">
+                                <p className="text-sm text-zinc-300 leading-relaxed">
+                                    このアプリはカメラとマイクを使用します。
+                                    デバイスの許可設定を確認し、下のボタンを押してシステムを起動してください。
+                                </p>
+                                <div className="grid grid-cols-2 gap-4 text-[10px] font-mono">
+                                    <div className={`p-2 border ${cameraPermission ? 'border-red-600 text-red-500' : 'border-zinc-700 text-zinc-600'}`}>CAM: {cameraPermission ? 'READY' : 'WAIT'}</div>
+                                    <div className={`p-2 border ${micPermission ? 'border-red-600 text-red-500' : 'border-zinc-700 text-zinc-600'}`}>MIC: {micPermission ? 'READY' : 'WAIT'}</div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={initializeSystem}
+                                disabled={initStatus === 'BOOTING...'}
+                                className="group relative w-full overflow-hidden bg-red-600 hover:bg-red-700 text-white font-black py-4 px-8 italic text-xl transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                <span className="relative z-10">{initStatus === 'STANDBY' ? 'SYSTEM START' : initStatus}</span>
+                                {initStatus === 'BOOTING...' && (
+                                    <motion.div
+                                        className="absolute bottom-0 left-0 h-1 bg-white"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: '100%' }}
+                                        transition={{ duration: 2 }}
+                                    />
+                                )}
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {isBiting && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%", left: "50%", top: "50%" }}
                         animate={{ opacity: 1, scale: 1.5, x: "-50%", y: "-50%" }}
                         exit={{ opacity: 0, scale: 2 }}
-                        transition={{
-                            duration: 0.8,
-                            ease: [0.22, 1, 0.36, 1]
-                        }}
+                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                         className="absolute z-50 pointer-events-none w-full h-full origin-center"
                     >
-                        <img
-                            src="/fox02.png"
-                            className="w-full h-full object-cover brightness-90 shadow-[0_0_100px_rgba(255,0,0,0.5)]"
-                            alt="Attack Fox"
-                        />
-                        {/* Dramatic Red Flash Overlay */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: [0, 0.8, 0] }}
-                            transition={{ duration: 0.5 }}
-                            className="absolute inset-0 bg-red-600 mix-blend-overlay"
-                        />
+                        <img src="/fox02.png" className="w-full h-full object-cover brightness-90 shadow-[0_0_100px_rgba(255,0,0,0.5)]" alt="Attack Fox" />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: [0, 0.8, 0] }} transition={{ duration: 0.5 }} className="absolute inset-0 bg-red-600 mix-blend-overlay" />
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Background Layer (The Story Canvas) */}
             <div className="absolute inset-0 z-0 bg-zinc-900">
                 <motion.img
                     src={['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
-                    alt="Story Background"
                     className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-60' : 'opacity-80'}`}
-                    animate={['idle', 'detecting', 'locked'].includes(gameState) ? {
-                        scale: [1, 1.05, 1],
-                        x: [0, 8, -8, 0],
-                        y: [0, 5, -5, 0],
-                    } : { scale: 1, x: 0, y: 0 }}
-                    transition={{
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
+                    animate={['idle', 'detecting', 'locked'].includes(gameState) ? { scale: [1, 1.05, 1], x: [0, 8, -8, 0], y: [0, 5, -5, 0] } : { scale: 1, x: 0, y: 0 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
                 />
-
-                {/* Damage Overlay when done */}
-                {gameState === 'done' && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="absolute inset-0 bg-red-900/40 mix-blend-multiply"
-                    />
-                )}
+                {gameState === 'done' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-red-900/40 mix-blend-multiply" />}
             </div>
 
-            {/* Webcam Layer (Always mounted for persistence, hidden when not needed) */}
-            <div
-                className={`absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl transition-all duration-700 pointer-events-none
-                ${showWebcam ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-20 scale-50'}`}
-            >
+            <div className={`absolute top-4 right-4 w-64 h-48 z-40 rounded-lg overflow-hidden border-2 border-red-600/30 shadow-2xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="relative w-full h-full pointer-events-auto">
-                    <Webcam
-                        ref={webcamRef}
-                        audio={false}
-                        className="w-full h-full object-cover grayscale contrast-125 brightness-125"
-                        onUserMedia={() => setCameraPermission(true)}
-                        videoConstraints={{ facingMode: "user" }}
-                    />
-
-                    {/* HUD / Monitoring Lines */}
+                    <Webcam ref={webcamRef} audio={false} className="w-full h-full object-cover grayscale contrast-125 brightness-125" onUserMedia={() => setCameraPermission(true)} videoConstraints={{ facingMode: "user" }} />
                     <div className="absolute inset-0 pointer-events-none">
-                        <motion.div
-                            className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
-                            animate={{ top: ["0%", "100%", "0%"] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        />
-                        {/* Corners */}
-                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-red-500/60" />
-                        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-red-500/60" />
-                        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-red-500/60" />
-                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-red-500/60" />
-
-                        <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">
-                            {isFoxHand ? "HAND_READY" : "SCANNING_HAND"}
-                        </div>
-
-                        {/* Tracking Dot Feedback */}
-                        {handPosition && (
-                            <div
-                                className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#f00] transition-all duration-75"
-                                style={{
-                                    left: `${handPosition.x * 100}%`,
-                                    top: `${handPosition.y * 100}%`,
-                                    transform: 'translate(-50%, -50%)'
-                                }}
-                            />
-                        )}
+                        <motion.div className="w-full h-[2px] bg-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.8)]" animate={{ top: ["0%", "100%", "0%"] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
+                        <div className="absolute bottom-2 right-8 text-[8px] font-mono text-red-500/80 animate-pulse">{isFoxHand ? "HAND_READY" : "SCANNING_HAND"}</div>
+                        {handPosition && <div className="absolute w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_#f00]" style={{ left: `${handPosition.x * 100}%`, top: `${handPosition.y * 100}%`, transform: 'translate(-50%, -50%)' }} />}
                     </div>
                 </div>
             </div>
 
-            {/* 3D Summoning Layer */}
             <div className="absolute inset-0 z-20 pointer-events-none">
                 <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
                     <ambientLight intensity={1.5} />
-                    <Suspense fallback={null}>
-                        <FoxScene state={gameState} />
-                        <SummonEffects state={gameState} />
-                    </Suspense>
+                    <Suspense fallback={null}><FoxScene state={gameState} /><SummonEffects state={gameState} /></Suspense>
                 </Canvas>
             </div>
 
-            {/* Hand Sign Silhouette Overlay */}
             <AnimatePresence>
                 {(gameState === 'detecting' || gameState === 'locked') && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{
-                            opacity: isSynced ? 0.3 : 0.6,
-                            scale: isFoxHand ? 1 : 0.95,
-                        }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none"
-                    >
-                        <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-red-600 drop-shadow-[0_0_30px_rgba(255,0,0,0.8)]' : 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]'}`}>
-                            {/* Inner detection glow */}
-                            {isFoxHand && (
-                                <motion.div
-                                    className="absolute inset-0 bg-red-500/10 blur-3xl rounded-full"
-                                    animate={{ scale: [1, 1.2, 1] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                />
-                            )}
+                    <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: isSynced ? 0.3 : 0.6, scale: isFoxHand ? 1 : 0.95 }} exit={{ opacity: 0 }} className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none">
+                        <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-red-600' : 'text-white'}`}>
                             <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
                                 <path d="M20,80 Q30,40 25,20 L35,45 Q50,40 65,45 L75,20 Q70,40 80,80 Z" />
-                                <circle cx="50" cy="55" r="5" className={`animate-pulse ${isSynced ? 'fill-red-400' : 'fill-red-600'}`} />
+                                <circle cx="50" cy="55" r="5" className="animate-pulse" />
                             </svg>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* UI Overlay */}
             <div className="absolute inset-0 z-30 flex flex-col items-center justify-between p-8 pointer-events-none">
                 <div className="w-full flex justify-between items-start">
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-red-600 animate-pulse rounded-full" />
-                            <h1 className="text-2xl font-black tracking-tighter italic text-red-600">ANIME:REPRO_V1</h1>
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-red-600 animate-pulse rounded-full" />
+                        <h1 className="text-2xl font-black italic text-red-600">ANIME:REPRO_V1</h1>
                     </div>
                 </div>
 
                 <AnimatePresence>
                     {(gameState === 'detecting' || gameState === 'locked') && (
                         <div className="flex flex-col items-center gap-8 mb-32">
-                            {/* Dialogue Message From Monster */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 30 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-black/90 p-8 border-l-8 border-red-600 shadow-[0_0_50px_rgba(255,0,0,0.3)] max-w-xl"
-                            >
-                                <p className="text-red-500 text-xs font-mono uppercase tracking-[0.4em] mb-4">Signal: Synchronized</p>
-                                <p className="text-white text-3xl font-black italic tracking-tighter leading-tight text-center">
-                                    「準備はいいよ。いつでも喚びな…。」
-                                </p>
+                            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-black/90 p-8 border-l-8 border-red-600">
+                                <p className="text-red-500 text-xs font-mono mb-4">Signal: Synchronized / Mic: {micPermission ? 'ON' : 'OFF'}</p>
+                                <p className="text-white text-3xl font-black italic text-center">「準備はいいよ。いつでも喚びな…。」</p>
                             </motion.div>
-
-                            {isSynced && (
-                                <motion.div
-                                    animate={{ scale: [1, 1.1, 1] }}
-                                    transition={{ repeat: Infinity, duration: 0.5 }}
-                                    className="text-white font-black text-6xl italic drop-shadow-[0_0_40px_rgba(220,38,38,1)] uppercase"
-                                >
-                                    KON!
-                                </motion.div>
-                            )}
+                            {isSynced && <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 0.5 }} className="text-white font-black text-6xl italic">KON!</motion.div>}
                         </div>
                     )}
                 </AnimatePresence>
 
                 {gameState === 'done' && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 2 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="flex flex-col items-center gap-4 bg-red-600 p-8 shadow-2xl"
-                    >
+                    <motion.div initial={{ opacity: 0, scale: 2 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4 bg-red-600 p-8 shadow-2xl">
                         <h2 className="text-5xl font-black italic">MISSION COMPLETE</h2>
-                        <button
-                            className="pointer-events-auto bg-white text-black px-10 py-3 font-black text-xl hover:bg-zinc-200 transition-colors uppercase italic"
-                            onClick={() => setGameState('idle')}
-                        >
-                            Retry Summoning
-                        </button>
+                        <button className="pointer-events-auto bg-white text-black px-10 py-3 font-black text-xl italic" onClick={() => setGameState('idle')}>Retry Summoning</button>
                     </motion.div>
                 )}
 
                 <div className="w-full flex justify-between items-end">
-                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                        Frame: {bgFrame} / Mode: Cinematic Repro
-                    </div>
+                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_READY'}</div>
                     <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-red-600 text-xs font-bold">
                         <span className="text-zinc-500 mr-2">SYSTEM:</span>
                         <span className="text-red-500">{gameState === 'locked' ? 'READY_FOR_SUMMON' : gameState.toUpperCase()}</span>
@@ -668,11 +547,7 @@ export default function Home() {
                 </div>
             </div>
 
-            {/* Trigger Layer */}
-            <div
-                className="absolute inset-0 z-50 opacity-0 cursor-crosshair"
-                onClick={() => isSynced && startSummon()}
-            />
+            <div className="absolute inset-0 z-50 opacity-0 cursor-crosshair" onClick={() => isSynced && startSummon()} />
         </main>
     );
 }

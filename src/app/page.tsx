@@ -120,17 +120,11 @@ const FoxScene = ({ state }: { state: string }) => {
         meshRef.current.rotation.set(0, 0, 0);
 
         if (state === 'locked') {
-            stateRefs.current.scale = 13;
+            stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 13, 0.15);
             stateRefs.current.opac = THREE.MathUtils.lerp(stateRefs.current.opac, 1, 0.15);
         } else if (state === 'summoning' || state === 'closeup') {
             stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 18, 0.2);
             stateRefs.current.opac = 1;
-        } else if (state === 'victory' || state === 'cooloff') {
-            stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 12, 0.1);
-            stateRefs.current.opac = 1;
-        } else if (state === 'evaporating' || state === 'done') {
-            stateRefs.current.scale *= 1.001;
-            stateRefs.current.opac = Math.max(0, stateRefs.current.opac - 0.0012);
         } else {
             stateRefs.current.opac = 0;
             stateRefs.current.scale = 0.1;
@@ -140,25 +134,30 @@ const FoxScene = ({ state }: { state: string }) => {
         matRef.current.opacity = stateRefs.current.opac;
     });
 
+    // Only render the 3D mesh for locked/summoning states.
+    // Victory and ending will use a more stable 2D overlay.
+    const show3DMesh = ['locked', 'summoning', 'closeup'].includes(state);
+
     return (
         <group>
             <ParallaxGroup intensity={['cooloff', 'evaporating', 'done'].includes(state) ? 0 : (state === 'locked' ? 0.3 : 1.5)}>
                 <Particles
                     count={state === 'evaporating' ? 300 : 40}
-                    color={state === 'evaporating' ? "#ffffff" : "#ff004c"}
+                    color={state === 'evaporating' ? "#ffffff" : "#3b82f6"} // Heroic Blue
                     isRising={state === 'evaporating'}
                 />
-                <mesh ref={meshRef} position={[0, 0, -2.5]}>
-                    <planeGeometry args={[1, 1]} />
-                    <meshBasicMaterial
-                        ref={matRef}
-                        map={activeTex}
-                        transparent
-                        blending={state === 'evaporating' ? THREE.AdditiveBlending : THREE.NormalBlending}
-                        depthTest={false}
-                        opacity={0}
-                    />
-                </mesh>
+                {show3DMesh && (
+                    <mesh ref={meshRef} position={[0, 0, -2.5]}>
+                        <planeGeometry args={[1, 1]} />
+                        <meshBasicMaterial
+                            ref={matRef}
+                            map={activeTex}
+                            transparent
+                            depthTest={false}
+                            opacity={0}
+                        />
+                    </mesh>
+                )}
             </ParallaxGroup>
         </group>
     );
@@ -670,15 +669,66 @@ export default function Home() {
                 )}
             </AnimatePresence>
 
-            <div className="absolute inset-0 z-0 bg-zinc-900">
+            <div className="absolute inset-0 z-0 bg-zinc-950">
                 <motion.img
-                    src={['summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg")}
-                    className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-60' : 'opacity-80'}`}
-                    animate={['idle', 'detecting', 'locked'].includes(gameState) ? { scale: [1, 1.05, 1], x: [0, 8, -8, 0], y: [0, 5, -5, 0] } : { scale: 1, x: 0, y: 0 }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                    src={['victory', 'cooloff', 'evaporating', 'done'].includes(gameState) ? "/city_bug01.jpg" : (['summoning', 'closeup'].includes(gameState) ? "/dead_bug.jpg" : (bgFrame === 0 ? "/city_bug01.jpg" : "/city_bug02.jpg"))}
+                    className={`w-full h-full object-cover transition-all duration-1000 ${gameState === 'done' ? 'grayscale opacity-40' : 'opacity-60'}`}
+                    animate={['idle', 'detecting', 'locked'].includes(gameState) ? { scale: [1, 1.05, 1], rotate: [0, 1, -1, 0] } : { scale: 1.1 }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                 />
-                {gameState === 'done' && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-red-900/40 mix-blend-multiply" />}
+                {['victory', 'cooloff', 'evaporating'].includes(gameState) && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute inset-0 bg-blue-500/10 mix-blend-overlay"
+                    />
+                )}
             </div>
+
+            {/* Victory/Farewell Heroic Fox Overlay (2D Steady Display) */}
+            <AnimatePresence>
+                {['victory', 'cooloff', 'evaporating'].includes(gameState) && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                        animate={{
+                            opacity: gameState === 'evaporating' ? 0 : 1,
+                            scale: gameState === 'evaporating' ? 1.2 : 1,
+                            y: 0
+                        }}
+                        exit={{ opacity: 0 }}
+                        transition={{
+                            duration: gameState === 'evaporating' ? 5 : 1.2,
+                            ease: "easeOut"
+                        }}
+                        className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none p-10"
+                    >
+                        <div className="relative w-full max-w-lg aspect-square flex items-center justify-center">
+                            <motion.img
+                                src="/fox01.png"
+                                className="w-full h-full object-contain filter drop-shadow-[0_0_60px_rgba(59,130,246,0.6)]"
+                                animate={{
+                                    y: [0, -20, 0],
+                                    filter: [
+                                        'drop-shadow(0 0 40px rgba(59,130,246,0.4))',
+                                        'drop-shadow(0 0 80px rgba(59,130,246,0.7))',
+                                        'drop-shadow(0 0 40px rgba(59,130,246,0.4))'
+                                    ]
+                                }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                            />
+                            {/* Heroic Name Plate */}
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="absolute bottom-0 left-0 bg-blue-600/20 backdrop-blur-sm border-l-4 border-blue-500 py-2 px-6"
+                            >
+                                <span className="text-white font-black italic tracking-widest text-xl">FOX HERO</span>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className={`absolute top-4 right-4 w-32 h-24 z-40 rounded-lg overflow-hidden border border-red-600/20 shadow-xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="relative w-full h-full pointer-events-auto">

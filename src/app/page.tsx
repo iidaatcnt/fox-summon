@@ -498,76 +498,124 @@ export default function Home() {
                 {!isInitialized && (
                     <motion.div
                         key="startup"
-                        exit={{ opacity: 0, scale: 1.1 }}
+                        exit={{ opacity: 0, filter: 'blur(20px)', scale: 1.1 }}
+                        transition={{ duration: 1 }}
                         className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center overflow-hidden"
                     >
+                        {/* Cinematic Background Scanlines */}
+                        <div className="absolute inset-0 pointer-events-none opacity-20 z-10"
+                            style={{ background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
+
+                        {/* Gritty Texture Overlay */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none z-10" />
+
                         {/* Wandering Fox Background */}
                         <motion.img
                             src="/fox01.png"
-                            initial={{ opacity: 0, x: -100, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 1.2 }}
                             animate={{
-                                opacity: [0.1, 0.3, 0.15],
-                                x: [-100, 100, -50],
-                                y: [-20, 20, -10],
-                                scale: [0.8, 0.85, 0.8]
+                                opacity: [0.05, 0.2, 0.05],
+                                x: [-200, 200, -100],
+                                y: [-50, 50, -25],
+                                scale: [1.1, 1.2, 1.1],
+                                rotate: [0, 5, -5, 0]
                             }}
                             transition={{
-                                duration: 25,
+                                duration: 30,
                                 repeat: Infinity,
                                 ease: "easeInOut"
                             }}
-                            className="absolute z-0 w-[150%] h-[150%] object-contain pointer-events-none grayscale opacity-20 brightness-50"
+                            className="absolute z-0 w-[180%] h-[180%] object-contain pointer-events-none grayscale brightness-[0.2]"
                         />
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none z-[5]" />
+
                         <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
+                            initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="relative z-10 space-y-8 max-w-md"
+                            className="relative z-20 space-y-10 w-full max-w-lg"
                         >
-                            <div className="space-y-2">
-                                <h1 className="text-4xl font-black italic text-red-600 tracking-tighter">FOX:SUMMON_NEXT</h1>
-                                <p className="text-zinc-400 text-xs font-mono tracking-widest uppercase">System Initialization Required</p>
-                            </div>
-
-                            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg space-y-4">
-                                <p className="text-sm text-zinc-300 leading-relaxed">
-                                    このアプリはカメラとマイクを使用します。
-                                    デバイスの許可設定を確認し、下のボタンを押してシステムを起動してください。
-                                </p>
-                                <div className="grid grid-cols-2 gap-4 text-[10px] font-mono font-bold tracking-tight">
-                                    <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${cameraPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
-                                        {cameraPermission ? <Camera size={14} /> : <VideoOff size={14} />}
-                                        CAM: {cameraPermission ? 'READY' : 'WAITING'}
-                                    </div>
-                                    <div className={`flex items-center justify-center gap-2 p-3 border transition-all duration-500 ${!isSpeechSupported ? 'border-amber-600 text-amber-500 bg-amber-900/10' : micPermission ? 'border-red-600 text-red-500 bg-red-900/10 shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-zinc-700 text-zinc-600'}`}>
-                                        {!isSpeechSupported ? <MicOff size={14} /> : micPermission ? <Mic size={14} /> : <Mic size={14} className="animate-pulse" />}
-                                        MIC: {!isSpeechSupported ? 'UNSUPPORTED' : micPermission ? 'READY' : 'READY_TO_ACTIVATE'}
-                                    </div>
+                            {/* Public Safety Branding */}
+                            <div className="flex flex-col items-center space-y-4">
+                                <motion.div
+                                    className="w-16 h-1 bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]"
+                                    animate={{ width: [0, 64, 0], opacity: [0, 1, 0] }}
+                                    transition={{ duration: 4, repeat: Infinity }}
+                                />
+                                <div className="space-y-1 text-center">
+                                    <h2 className="text-red-500 text-[10px] font-mono font-bold tracking-[0.5em] uppercase opacity-80">
+                                        Public Safety Devil Hunter Division
+                                    </h2>
+                                    <h1 className="text-7xl font-black italic text-white tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                                        FOX<span className="text-red-600">SUMMON</span>
+                                    </h1>
                                 </div>
-
-                                {!isSpeechSupported && (
-                                    <div className="bg-amber-900/20 border border-amber-600/50 p-3 rounded text-[10px] text-amber-500 font-bold leading-tight">
-                                        ⚠️ お使いのブラウザは音声認識に対応していません。<br />
-                                        SafariまたはChromeの通常ブラウザで開き直してください。
-                                    </div>
-                                )}
                             </div>
 
-                            <button
-                                onClick={initializeSystem}
-                                disabled={initStatus === 'BOOTING...'}
-                                className="group relative w-full overflow-hidden bg-red-600 hover:bg-red-700 text-white font-black py-4 px-8 italic text-xl transition-all active:scale-95 disabled:opacity-50"
-                            >
-                                <span className="relative z-10">{initStatus === 'STANDBY' ? 'SYSTEM START' : initStatus}</span>
-                                {initStatus === 'BOOTING...' && (
+                            <div className="bg-zinc-900/60 backdrop-blur-sm border-y border-red-600/30 py-8 px-6 space-y-6 relative group">
+                                <div className="absolute top-0 left-0 p-1 text-[8px] font-mono text-red-600/50">TRACE_ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+                                <div className="absolute bottom-0 right-0 p-1 text-[8px] font-mono text-red-600/50">LOC: 35.6895° N, 139.6917° E</div>
+
+                                <p className="text-xs text-zinc-400 font-mono tracking-wide leading-relaxed uppercase">
+                                    &gt; INITIALIZING BIOMETRIC LINK...<br />
+                                    &gt; REQUESTING OPTICAL & ACOUSTIC AUTHORIZATION.<br />
+                                    &gt; DO NOT BREAK THE CONTRACT.
+                                </p>
+
+                                <div className="grid grid-cols-2 gap-4">
                                     <motion.div
-                                        className="absolute bottom-0 left-0 h-1 bg-white"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: '100%' }}
-                                        transition={{ duration: 2 }}
-                                    />
-                                )}
-                            </button>
+                                        whileHover={{ scale: 1.02 }}
+                                        className={`flex flex-col items-center gap-2 p-4 border-l-2 transition-all duration-700 ${cameraPermission ? 'border-red-600 bg-red-600/10' : 'border-zinc-800 bg-black/40'}`}
+                                    >
+                                        <div className={cameraPermission ? 'text-red-500' : 'text-zinc-700'}>
+                                            {cameraPermission ? <Camera size={20} /> : <VideoOff size={20} />}
+                                        </div>
+                                        <span className={`text-[9px] font-mono font-bold ${cameraPermission ? 'text-red-400' : 'text-zinc-600'}`}>
+                                            OPTIC_LINK: {cameraPermission ? 'VERIFIED' : 'PENDING'}
+                                        </span>
+                                    </motion.div>
+
+                                    <motion.div
+                                        whileHover={{ scale: 1.02 }}
+                                        className={`flex flex-col items-center gap-2 p-4 border-r-2 transition-all duration-700 ${micPermission ? 'border-red-600 bg-red-600/10' : 'border-zinc-800 bg-black/40'}`}
+                                    >
+                                        <div className={micPermission ? 'text-red-500' : 'text-zinc-700'}>
+                                            <Mic size={20} className={micPermission ? '' : 'animate-pulse'} />
+                                        </div>
+                                        <span className={`text-[9px] font-mono font-bold ${micPermission ? 'text-red-400' : 'text-zinc-600'}`}>
+                                            VOICE_LINK: {micPermission ? 'VERIFIED' : 'PENDING'}
+                                        </span>
+                                    </motion.div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <button
+                                    onClick={initializeSystem}
+                                    disabled={initStatus === 'BOOTING...'}
+                                    className="group relative w-full overflow-hidden bg-white/5 hover:bg-white/10 border border-white/10 py-5 px-8 transition-all active:scale-[0.98] disabled:opacity-30"
+                                >
+                                    <div className="absolute inset-0 bg-red-600/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+
+                                    <div className="relative flex items-center justify-center gap-4">
+                                        <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_#f00]" />
+                                        <span className="text-white font-black italic text-2xl tracking-[0.2em]">
+                                            {initStatus === 'STANDBY' ? 'ESTABLISH CONTRACT' : initStatus}
+                                        </span>
+                                    </div>
+
+                                    {initStatus === 'BOOTING...' && (
+                                        <motion.div
+                                            className="absolute bottom-0 left-0 h-[2px] bg-red-600"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: '100%' }}
+                                            transition={{ duration: 2 }}
+                                        />
+                                    )}
+                                </button>
+
+                                <p className="text-[9px] font-mono text-zinc-600 tracking-tighter uppercase">
+                                    By initiating, you agree to the biological sync protocols.
+                                </p>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

@@ -125,6 +125,56 @@ export default function Home() {
     const [cameraPermission, setCameraPermission] = useState(false);
     const [webcamEnabled, setWebcamEnabled] = useState(false);
     const webcamRef = useRef<any>(null);
+    const battleAudioRef = useRef<HTMLAudioElement | null>(null);
+    const endingAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Initialize audio and handle browser autoplay policy
+    useEffect(() => {
+        battleAudioRef.current = new Audio('/battle.mp3');
+        battleAudioRef.current.loop = true;
+        endingAudioRef.current = new Audio('/ending.mp3');
+        endingAudioRef.current.loop = true;
+
+        const handleFirstInteraction = () => {
+            if (gameState === 'idle' || gameState === 'detecting') {
+                battleAudioRef.current?.play().catch(() => {});
+            }
+            window.removeEventListener('click', handleFirstInteraction);
+            window.removeEventListener('keydown', handleFirstInteraction);
+            window.removeEventListener('touchstart', handleFirstInteraction);
+        };
+
+        window.addEventListener('click', handleFirstInteraction);
+        window.addEventListener('keydown', handleFirstInteraction);
+        window.addEventListener('touchstart', handleFirstInteraction);
+
+        return () => {
+            battleAudioRef.current?.pause();
+            endingAudioRef.current?.pause();
+            window.removeEventListener('click', handleFirstInteraction);
+            window.removeEventListener('keydown', handleFirstInteraction);
+            window.removeEventListener('touchstart', handleFirstInteraction);
+        };
+    }, []);
+
+    // Manage BGM states
+    useEffect(() => {
+        if (['idle', 'detecting'].includes(gameState)) {
+            // Transition back to idle/detecting (on retry or start)
+            endingAudioRef.current?.pause();
+            if (endingAudioRef.current) endingAudioRef.current.currentTime = 0;
+            battleAudioRef.current?.play().catch(() => {});
+        } else if (['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating'].includes(gameState)) {
+            // Hand recognized or summon in progress
+            battleAudioRef.current?.pause();
+            if (battleAudioRef.current) battleAudioRef.current.currentTime = 0;
+            endingAudioRef.current?.pause();
+        } else if (gameState === 'done') {
+            // Mission complete, waiting state
+            battleAudioRef.current?.pause();
+            endingAudioRef.current?.play().catch(() => {});
+        }
+    }, [gameState]);
 
     // Initial delay for camera to "boot up"
     useEffect(() => {

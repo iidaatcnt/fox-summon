@@ -89,6 +89,12 @@ const FoxScene = ({ state }: { state: string }) => {
                 setOpac(0);
                 setScaleFactor(0.1);
             }
+            // Ensure no rotation is applied to the mesh
+            if (meshRef.current) {
+                meshRef.current.rotation.x = 0;
+                meshRef.current.rotation.y = 0;
+                meshRef.current.rotation.z = 0;
+            }
             animId = requestAnimationFrame(animate);
         };
         animate();
@@ -100,7 +106,7 @@ const FoxScene = ({ state }: { state: string }) => {
             <ParallaxGroup intensity={state === 'locked' ? 0.3 : 1.5}>
                 <Particles count={state === 'evaporating' ? 180 : 30} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[0, 0, -2]} scale={[scaleFactor, scaleFactor, 1]}>
+            <mesh ref={meshRef} position={[0, 0, -2]} scale={[scaleFactor, scaleFactor, 1]} rotation={[0, 0, 0]}>
                 <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
                     map={activeTex}

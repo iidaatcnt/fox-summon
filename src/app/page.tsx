@@ -128,6 +128,8 @@ export default function Home() {
     const [isInitialized, setIsInitialized] = useState(false);
     const [initStatus, setInitStatus] = useState('STANDBY');
 
+    const [isMicActive, setIsMicActive] = useState(false);
+
     const webcamRef = useRef<any>(null);
     const battleAudioRef = useRef<HTMLAudioElement | null>(null);
     const endingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -162,21 +164,26 @@ export default function Home() {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             setCameraPermission(true);
             setMicPermission(true);
-            // We stop the temporary stream tracks but permissions are now granted for the session
             stream.getTracks().forEach(track => track.stop());
 
             setInitStatus('LINKING BGM...');
-            // 2. Start BGM (Required user gesture - this function is called on click)
             battleAudioRef.current?.play().catch(e => console.error("BGM Start Error:", e));
 
             setInitStatus('SYNCING VOICE...');
-            // 3. Initialize Speech Recognition
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             if (SpeechRecognition) {
                 const recognition = new SpeechRecognition();
                 recognition.lang = 'ja-JP';
                 recognition.continuous = true;
                 recognition.interimResults = true;
+
+                recognition.onstart = () => setIsMicActive(true);
+                recognition.onend = () => {
+                    setIsMicActive(false);
+                    if (activelyListeningRef.current) {
+                        try { recognition.start(); } catch (e) { }
+                    }
+                };
 
                 recognition.onresult = (event: any) => {
                     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -187,14 +194,7 @@ export default function Home() {
                     }
                 };
 
-                recognition.onend = () => {
-                    if (activelyListeningRef.current) {
-                        try { recognition.start(); } catch (e) { }
-                    }
-                };
-
                 recognition.onerror = (event: any) => {
-                    console.error('Speech error:', event.error);
                     if (event.error === 'not-allowed') {
                         setMicPermission(false);
                         activelyListeningRef.current = false;
@@ -557,9 +557,36 @@ export default function Home() {
                 <AnimatePresence>
                     {(gameState === 'detecting' || gameState === 'locked') && (
                         <div className="flex flex-col items-center gap-8 mb-32">
-                            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-black/90 p-8 border-l-8 border-red-600">
-                                <p className="text-red-500 text-xs font-mono mb-4">Signal: Synchronized / Mic: {micPermission ? 'ON' : 'OFF'}</p>
-                                <p className="text-white text-3xl font-black italic text-center">「準備はいいよ。いつでも喚びな…。」</p>
+                            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-black/90 p-8 border-l-8 border-red-600 relative overflow-hidden">
+                                {isMicActive && (
+                                    <motion.div
+                                        className="absolute bottom-0 left-0 h-1 bg-red-600"
+                                        animate={{ width: ["0%", "100%", "0%"] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    />
+                                )}
+                                <div className="flex justify-between items-center mb-4">
+                                    <p className="text-red-500 text-xs font-mono uppercase tracking-widest">
+                                        Signal: {isSynced ? 'SYNCHRONIZED' : 'DETECTING'}
+                                    </p>
+                                    {isMicActive ? (
+                                        <div className="flex items-center gap-1 text-red-500 animate-pulse">
+                                            <Mic size={10} />
+                                            <span className="text-[8px] font-mono font-bold tracking-widest">LISTENING...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1 text-zinc-600">
+                                            <MicOff size={10} />
+                                            <span className="text-[8px] font-mono font-bold tracking-widest">OFF_LINE</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-white text-3xl font-black italic text-center leading-tight mb-2">
+                                    「準備はいいよ。いつでも喚びな…。」
+                                </p>
+                                <p className="text-zinc-500 text-[9px] font-mono text-center tracking-tighter uppercase">
+                                    {isMicActive ? "Say 'KON!' or tap below" : "Mic inactive. PLEASE TAP TO SUMMON"}
+                                </p>
                             </motion.div>
                             {isSynced && <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 0.5 }} className="text-white font-black text-6xl italic">KON!</motion.div>}
                         </div>

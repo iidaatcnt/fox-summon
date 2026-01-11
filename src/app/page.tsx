@@ -769,14 +769,21 @@ export default function Home() {
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 z-25 flex items-center justify-center pointer-events-none"
                     >
-                        <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-cyan-400' : 'text-white'}`}>
-                            <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
-                                {/* Side-View Hand Fox Silhouette (Profile) */}
-                                <path d="M15,90 Q20,75 30,55 L55,10 L50,45 L78,25 L65,55 L92,60 Q96,65 92,70 L75,70 L88,82 Q90,86 82,88 Q50,95 15,95 Z" />
-                                <circle cx="60" cy="65" r="3" className="animate-pulse" />
-                            </svg>
-                            <div className="text-center mt-4">
-                                <span className="text-[10px] font-mono font-black tracking-[0.5em] uppercase opacity-50">
+                        <div className={`w-96 h-96 transition-all duration-300 relative ${isSynced ? 'opacity-40 scale-110' : 'opacity-70 scale-100'}`}>
+                            {/* Real Hand Fox Silhouette (Based on User Reference) */}
+                            <img
+                                src="/hand_fox.png"
+                                className="w-full h-full object-contain filter invert brightness-[1.5] sepia(1) saturate-[5] hue-rotate-[140deg] mix-blend-screen"
+                                alt="Hand Fox Guide"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div
+                                    className="w-4 h-4 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_15px_#22d3ee]"
+                                    style={{ position: 'absolute', left: '55%', top: '56%' }}
+                                />
+                            </div>
+                            <div className="text-center mt-4 absolute -bottom-8 w-full">
+                                <span className="text-[10px] font-mono font-black tracking-[0.5em] uppercase opacity-50 text-white">
                                     {isSynced ? "BOND_LINKED" : (isFoxHand ? "ALIGNHAND" : "AWAITING_GESTURE")}
                                 </span>
                             </div>

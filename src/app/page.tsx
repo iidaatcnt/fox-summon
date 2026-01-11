@@ -99,46 +99,46 @@ const FoxScene = ({ state }: { state: string }) => {
     const tex03 = useTexture('/fox03.png');
 
     const meshRef = useRef<THREE.Mesh>(null);
-    const [opac, setOpac] = useState(0);
-    const [scaleFactor, setScaleFactor] = useState(1);
+    const matRef = useRef<THREE.MeshBasicMaterial>(null);
+    const stateRefs = useRef({ opac: 0, scale: 1 });
     const [activeTex, setActiveTex] = useState<THREE.Texture>(tex01);
 
     useEffect(() => {
-        let animId: number;
-        const animate = () => {
-            if (!meshRef.current) return;
-
-            if (state === 'locked') {
-                setActiveTex(tex01);
-                setScaleFactor(13);
-                setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.15));
-            } else if (state === 'summoning' || state === 'closeup') {
-                setActiveTex(tex02);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 18, 0.2));
-                setOpac(1);
-            } else if (state === 'victory' || state === 'cooloff') {
-                setActiveTex(tex03);
-                setScaleFactor(prev => THREE.MathUtils.lerp(prev, 9, 0.1));
-                setOpac(1);
-            } else if (state === 'evaporating' || state === 'done') {
-                setActiveTex(tex03);
-                setScaleFactor(prev => prev * 1.001);
-                setOpac(prev => Math.max(0, prev - 0.0012));
-            } else {
-                setOpac(0);
-                setScaleFactor(0.1);
-            }
-            // Ensure no rotation is applied to the mesh
-            if (meshRef.current) {
-                meshRef.current.rotation.x = 0;
-                meshRef.current.rotation.y = 0;
-                meshRef.current.rotation.z = 0;
-            }
-            animId = requestAnimationFrame(animate);
-        };
-        animate();
-        return () => cancelAnimationFrame(animId);
+        if (state === 'locked') {
+            setActiveTex(tex01);
+        } else if (state === 'summoning' || state === 'closeup') {
+            setActiveTex(tex02);
+        } else if (['victory', 'cooloff', 'evaporating', 'done'].includes(state)) {
+            setActiveTex(tex03);
+        }
     }, [state, tex01, tex02, tex03]);
+
+    useFrame(() => {
+        if (!meshRef.current || !matRef.current) return;
+
+        // Force zero rotation at all times to prevent any slanting
+        meshRef.current.rotation.set(0, 0, 0);
+
+        if (state === 'locked') {
+            stateRefs.current.scale = 13;
+            stateRefs.current.opac = THREE.MathUtils.lerp(stateRefs.current.opac, 1, 0.15);
+        } else if (state === 'summoning' || state === 'closeup') {
+            stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 18, 0.2);
+            stateRefs.current.opac = 1;
+        } else if (state === 'victory' || state === 'cooloff') {
+            stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 8.5, 0.1);
+            stateRefs.current.opac = 1;
+        } else if (state === 'evaporating' || state === 'done') {
+            stateRefs.current.scale *= 1.001;
+            stateRefs.current.opac = Math.max(0, stateRefs.current.opac - 0.0012);
+        } else {
+            stateRefs.current.opac = 0;
+            stateRefs.current.scale = 0.1;
+        }
+
+        meshRef.current.scale.set(stateRefs.current.scale, stateRefs.current.scale, 1);
+        matRef.current.opacity = stateRefs.current.opac;
+    });
 
     return (
         <group>
@@ -149,14 +149,15 @@ const FoxScene = ({ state }: { state: string }) => {
                     isRising={state === 'evaporating'}
                 />
             </ParallaxGroup>
-            <mesh ref={meshRef} position={[0, 0.5, -2.5]} scale={[scaleFactor, scaleFactor, 1]} rotation={[0, 0, 0]}>
+            <mesh ref={meshRef} position={[0, 0.5, -2.5]}>
                 <planeGeometry args={[1, 1]} />
                 <meshBasicMaterial
+                    ref={matRef}
                     map={activeTex}
                     transparent
                     blending={state === 'evaporating' ? THREE.AdditiveBlending : THREE.NormalBlending}
                     depthTest={false}
-                    opacity={opac}
+                    opacity={0}
                 />
             </mesh>
         </group>

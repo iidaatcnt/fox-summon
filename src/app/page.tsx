@@ -410,10 +410,27 @@ export default function Home() {
                 {!isInitialized && (
                     <motion.div
                         key="startup"
-                        exit={{ opacity: 0, y: -20 }}
-                        className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center"
+                        exit={{ opacity: 0, scale: 1.1 }}
+                        className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center overflow-hidden"
                     >
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
+                        {/* Wandering Fox Background */}
+                        <motion.img
+                            src="/fox01.png"
+                            initial={{ opacity: 0, x: -100, scale: 0.8 }}
+                            animate={{
+                                opacity: [0.1, 0.3, 0.15],
+                                x: [-100, 100, -50],
+                                y: [-20, 20, -10],
+                                scale: [0.8, 0.85, 0.8]
+                            }}
+                            transition={{
+                                duration: 25,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                            }}
+                            className="absolute z-0 w-[150%] h-[150%] object-contain pointer-events-none grayscale opacity-20 brightness-50"
+                        />
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none z-[5]" />
                         <motion.div
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}

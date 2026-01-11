@@ -8,6 +8,7 @@ import { useTexture, CameraShake } from '@react-three/drei';
 import { Mic, MicOff, Camera, VideoOff } from 'lucide-react';
 import * as THREE from 'three';
 import { useHandTracking } from '@/hooks/useHandTracking';
+import { useMemo } from 'react';
 
 const FOX_TRIGGER_WORD = ['コン', 'こん', 'kon', 'konn', 'こんっ', 'こんー', 'こーん', 'こん！', 'コン！', 'こん。', 'コン。'];
 const WEB_APP_TITLE = 'FOX:SUMMON_NEXT';
@@ -30,25 +31,45 @@ const ParallaxGroup = ({ children, intensity = 1 }: { children: React.ReactNode,
     return <group ref={group}>{children}</group>;
 };
 
-const Particles = ({ count = 20, color = "#ff5e00" }) => {
-    const particles = useRef<any[]>([]);
-    if (particles.current.length === 0) {
+const Particles = ({ count = 20, color = "#ff5e00", isRising = false }) => {
+    const meshRef = useRef<THREE.InstancedMesh>(null);
+    const particles = useMemo(() => {
+        const temp = [];
         for (let i = 0; i < count; i++) {
-            particles.current.push({
-                position: [(Math.random() - 0.5) * 15, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 8],
-                size: Math.random() * 0.08 + 0.02
+            temp.push({
+                pos: new THREE.Vector3((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 5),
+                speed: 0.02 + Math.random() * 0.05
             });
         }
-    }
+        return temp;
+    }, [count]);
+
+    useEffect(() => {
+        let animId: number;
+        const animate = () => {
+            if (!meshRef.current) return;
+            const dummy = new THREE.Object3D();
+            particles.forEach((p, i) => {
+                if (isRising) {
+                    p.pos.y += p.speed;
+                    if (p.pos.y > 8) p.pos.y = -8;
+                }
+                dummy.position.copy(p.pos);
+                dummy.updateMatrix();
+                meshRef.current?.setMatrixAt(i, dummy.matrix);
+            });
+            meshRef.current.instanceMatrix.needsUpdate = true;
+            animId = requestAnimationFrame(animate);
+        };
+        animate();
+        return () => cancelAnimationFrame(animId);
+    }, [particles, isRising]);
+
     return (
-        <group>
-            {particles.current.map((p, i) => (
-                <mesh key={i} position={p.position}>
-                    <sphereGeometry args={[p.size, 8, 8]} />
-                    <meshBasicMaterial color={color} transparent opacity={0.4} />
-                </mesh>
-            ))}
-        </group>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+            <sphereGeometry args={[0.05, 8, 8]} />
+            <meshBasicMaterial color={color} transparent opacity={0.5} blending={THREE.AdditiveBlending} />
+        </instancedMesh>
     );
 };
 
@@ -83,8 +104,8 @@ const FoxScene = ({ state }: { state: string }) => {
                 setOpac(prev => THREE.MathUtils.lerp(prev, 1, 0.1));
             } else if (state === 'evaporating') {
                 setActiveTex(tex03);
-                setScaleFactor(prev => prev + 0.01);
-                setOpac(prev => Math.max(0, prev - 0.005));
+                setScaleFactor(prev => prev * 1.005);
+                setOpac(prev => Math.max(0, prev - 0.003));
             } else {
                 setOpac(0);
                 setScaleFactor(0.1);
@@ -104,7 +125,11 @@ const FoxScene = ({ state }: { state: string }) => {
     return (
         <group>
             <ParallaxGroup intensity={state === 'locked' ? 0.3 : 1.5}>
-                <Particles count={state === 'evaporating' ? 180 : 30} color={state === 'evaporating' ? "#ffffff" : "#ff004c"} />
+                <Particles
+                    count={state === 'evaporating' ? 300 : 40}
+                    color={state === 'evaporating' ? "#ffffff" : "#ff004c"}
+                    isRising={state === 'evaporating'}
+                />
             </ParallaxGroup>
             <mesh ref={meshRef} position={[0, 0, -2]} scale={[scaleFactor, scaleFactor, 1]} rotation={[0, 0, 0]}>
                 <planeGeometry args={[1, 1]} />

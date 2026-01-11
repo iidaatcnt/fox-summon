@@ -771,8 +771,9 @@ export default function Home() {
                     >
                         <div className={`w-96 h-96 transition-all duration-300 ${isSynced ? 'text-cyan-400' : 'text-white'}`}>
                             <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
-                                <path d="M15,80 Q10,40 30,10 L45,45 Q50,40 55,45 L70,10 Q90,40 85,80 Q50,95 15,80" />
-                                <circle cx="50" cy="55" r="3" className="animate-pulse" />
+                                {/* Anatomical Hand Fox Silhouette */}
+                                <path d="M20,95 Q30,90 35,65 L20,10 Q40,15 45,55 L55,55 Q60,15 80,10 L65,65 Q70,90 80,95 Q50,98 20,95" />
+                                <circle cx="50" cy="65" r="3" className="animate-pulse" />
                             </svg>
                             <div className="text-center mt-4">
                                 <span className="text-[10px] font-mono font-black tracking-[0.5em] uppercase opacity-50">

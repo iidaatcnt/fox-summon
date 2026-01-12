@@ -196,6 +196,7 @@ export default function Home() {
     const battleAudioRef = useRef<HTMLAudioElement | null>(null);
     const endingAudioRef = useRef<HTMLAudioElement | null>(null);
     const recognitionRef = useRef<any>(null);
+    const audioCtxRef = useRef<AudioContext | null>(null);
     const activelyListeningRef = useRef(false);
     const autoResetTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -281,6 +282,10 @@ export default function Home() {
         setInitStatus('BOOTING...');
 
         try {
+            // Initialize single AudioContext once
+            const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+            audioCtxRef.current = new AudioContextClass();
+
             // 1. Request Camera & Mic Permission explicitly
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             setCameraPermission(true);
@@ -429,17 +434,20 @@ export default function Home() {
 
     const playBeep = (freq = 880, length = 0.15) => {
         try {
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
+            if (!audioCtxRef.current) return;
+            const ctx = audioCtxRef.current;
+            if (ctx.state === 'suspended') ctx.resume();
+
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
             oscillator.type = 'square';
-            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + length);
+            oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + length);
             oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+            gainNode.connect(ctx.destination);
             oscillator.start();
-            oscillator.stop(audioCtx.currentTime + length);
+            oscillator.stop(ctx.currentTime + length);
         } catch (e) { }
     };
 
@@ -457,53 +465,56 @@ export default function Home() {
 
     const playSummonSound = () => {
         try {
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const masterGain = audioCtx.createGain();
-            masterGain.connect(audioCtx.destination);
-            masterGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+            if (!audioCtxRef.current) return;
+            const ctx = audioCtxRef.current;
+            if (ctx.state === 'suspended') ctx.resume();
 
-            const buildUp = audioCtx.createOscillator();
+            const masterGain = ctx.createGain();
+            masterGain.connect(ctx.destination);
+            masterGain.gain.setValueAtTime(1.0, ctx.currentTime);
+
+            const buildUp = ctx.createOscillator();
             buildUp.type = 'sawtooth';
-            buildUp.frequency.setValueAtTime(40, audioCtx.currentTime);
-            buildUp.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 1.2);
-            const buildGain = audioCtx.createGain();
-            buildGain.gain.setValueAtTime(0, audioCtx.currentTime);
-            buildGain.gain.linearRampToValueAtTime(0.6, audioCtx.currentTime + 1.0);
-            const buildFilter = audioCtx.createBiquadFilter();
+            buildUp.frequency.setValueAtTime(40, ctx.currentTime);
+            buildUp.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 1.2);
+            const buildGain = ctx.createGain();
+            buildGain.gain.setValueAtTime(0, ctx.currentTime);
+            buildGain.gain.linearRampToValueAtTime(0.6, ctx.currentTime + 1.0);
+            const buildFilter = ctx.createBiquadFilter();
             buildFilter.type = 'lowpass';
-            buildFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
-            buildFilter.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 1.2);
+            buildFilter.frequency.setValueAtTime(200, ctx.currentTime);
+            buildFilter.frequency.exponentialRampToValueAtTime(2000, ctx.currentTime + 1.2);
             buildUp.connect(buildFilter);
             buildFilter.connect(buildGain);
             buildGain.connect(masterGain);
             buildUp.start();
-            buildUp.stop(audioCtx.currentTime + 1.5);
+            buildUp.stop(ctx.currentTime + 1.5);
 
-            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 4, audioCtx.sampleRate);
+            const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
             const noiseData = noiseBuffer.getChannelData(0);
             for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
-            const whoosh = audioCtx.createBufferSource();
+            const whoosh = ctx.createBufferSource();
             whoosh.buffer = noiseBuffer;
-            const whooshFilter = audioCtx.createBiquadFilter();
+            const whooshFilter = ctx.createBiquadFilter();
             whooshFilter.type = 'bandpass';
-            whooshFilter.frequency.setValueAtTime(100, audioCtx.currentTime);
-            whooshFilter.frequency.exponentialRampToValueAtTime(4000, audioCtx.currentTime + 1.2);
-            const whooshGain = audioCtx.createGain();
-            whooshGain.gain.setValueAtTime(0, audioCtx.currentTime);
-            whooshGain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + 1.0);
-            whooshGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 3.0);
+            whooshFilter.frequency.setValueAtTime(100, ctx.currentTime);
+            whooshFilter.frequency.exponentialRampToValueAtTime(4000, ctx.currentTime + 1.2);
+            const whooshGain = ctx.createGain();
+            whooshGain.gain.setValueAtTime(0, ctx.currentTime);
+            whooshGain.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 1.0);
+            whooshGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.0);
             whoosh.connect(whooshFilter);
             whooshFilter.connect(whooshGain);
             whooshGain.connect(masterGain);
             whoosh.start();
 
             setTimeout(() => {
-                const now = audioCtx.currentTime;
-                const impact = audioCtx.createOscillator();
+                const now = ctx.currentTime;
+                const impact = ctx.createOscillator();
                 impact.type = 'triangle';
                 impact.frequency.setValueAtTime(150, now);
                 impact.frequency.exponentialRampToValueAtTime(30, now + 1.0);
-                const impactGain = audioCtx.createGain();
+                const impactGain = ctx.createGain();
                 impactGain.gain.setValueAtTime(2.0, now);
                 impactGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
                 impact.connect(impactGain);
@@ -511,12 +522,12 @@ export default function Home() {
                 impact.start(now);
                 impact.stop(now + 2.0);
 
-                const crunch = audioCtx.createBufferSource();
+                const crunch = ctx.createBufferSource();
                 crunch.buffer = noiseBuffer;
-                const crunchFilter = audioCtx.createBiquadFilter();
+                const crunchFilter = ctx.createBiquadFilter();
                 crunchFilter.type = 'lowpass';
                 crunchFilter.frequency.setValueAtTime(1200, now);
-                const crunchGain = audioCtx.createGain();
+                const crunchGain = ctx.createGain();
                 crunchGain.gain.setValueAtTime(1.5, now);
                 crunchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
                 crunch.connect(crunchFilter);
@@ -525,10 +536,10 @@ export default function Home() {
                 crunch.start(now);
                 crunch.stop(now + 1.0);
 
-                const ring = audioCtx.createOscillator();
+                const ring = ctx.createOscillator();
                 ring.type = 'sine';
                 ring.frequency.setValueAtTime(1000, now);
-                const ringGain = audioCtx.createGain();
+                const ringGain = ctx.createGain();
                 ringGain.gain.setValueAtTime(0.3, now);
                 ringGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
                 ring.connect(ringGain);
@@ -1034,8 +1045,15 @@ export default function Home() {
 
                 {/* Bottom Bar: System Info */}
                 <div className="w-full flex justify-between items-end">
-                    <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                        Frame: {bgFrame} / Mode: {micPermission ? 'VOICE_READY' : 'VOICE_ERROR'}
+                    <div className="flex flex-col gap-1">
+                        <div className="text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest bg-black/40 px-2 py-1">
+                            MEM: {(performance as any).memory ? Math.round((performance as any).memory.usedJSHeapSize / 1048576) + 'MB' : 'N/A'} /
+                            AUD: {audioCtxRef.current?.state || 'NONE'} /
+                            FR: {bgFrame}
+                        </div>
+                        <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                            Mode: {micPermission ? 'VOICE_READY' : 'VOICE_ERROR'}
+                        </div>
                     </div>
                     <div className="bg-zinc-900/80 px-4 py-2 rounded-sm border-t-2 border-cyan-600 text-xs font-bold">
                         <span className="text-zinc-500 mr-2">SYSTEM:</span>

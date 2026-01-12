@@ -178,6 +178,8 @@ export default function Home() {
     const [cameraPermission, setCameraPermission] = useState(false);
     const [micPermission, setMicPermission] = useState(false);
     const [webcamEnabled, setWebcamEnabled] = useState(false);
+    const [videoPlaylist, setVideoPlaylist] = useState<string[]>(['NmZFiYlzvgA']);
+    const [firstVideoId, setFirstVideoId] = useState('NmZFiYlzvgA');
     const [isInitialized, setIsInitialized] = useState(false);
     const [isKonShouted, setIsKonShouted] = useState(false);
     const [initStatus, setInitStatus] = useState('STANDBY');
@@ -217,6 +219,18 @@ export default function Home() {
         battleAudioRef.current.loop = true;
         endingAudioRef.current = new Audio('/ending.mp3');
         endingAudioRef.current.loop = true;
+
+        // Fetch external video playlist
+        fetch('/videos.txt')
+            .then(res => res.text())
+            .then(text => {
+                const ids = text.split('\n').map(s => s.trim()).filter(Boolean);
+                if (ids.length > 0) {
+                    setVideoPlaylist(ids);
+                    setFirstVideoId(ids[0]);
+                }
+            })
+            .catch(err => console.error("Failed to load video list:", err));
 
         return () => {
             battleAudioRef.current?.pause();
@@ -624,7 +638,7 @@ export default function Home() {
                                         <div className="flex-1 min-h-[160px] bg-zinc-900">
                                             <iframe
                                                 className="w-full h-full"
-                                                src="https://www.youtube.com/embed/NmZFiYlzvgA?autoplay=1&mute=1&loop=1&playlist=NmZFiYlzvgA&controls=0&modestbranding=1&rel=0"
+                                                src={`https://www.youtube.com/embed/${firstVideoId}?autoplay=1&mute=1&loop=1&playlist=${videoPlaylist.join(',')}&controls=0&modestbranding=1&rel=0`}
                                                 title="Reference"
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                             />

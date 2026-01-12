@@ -308,9 +308,19 @@ export default function Home() {
                             );
                             const isPhoneticMatch = /k[oaui]n/i.test(text) || /[こコ][んン]/.test(text);
 
-                            if (isMatch || isPhoneticMatch || (text.length > 3 && text.includes('ん'))) {
+                            if (isMatch || isPhoneticMatch || (text.length > 1 && text.includes('ん'))) {
                                 startSummon();
                             }
+                        }
+                    }
+                };
+
+                recognition.onend = () => {
+                    if (activelyListeningRef.current) {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            // Already started or busy
                         }
                     }
                 };

@@ -89,9 +89,14 @@ const Particles = ({ count = 20, color = "#ff5e00", isRising = false }) => {
             if (meshRef.current) {
                 meshRef.current.geometry.dispose();
                 if (Array.isArray(meshRef.current.material)) {
-                    meshRef.current.material.forEach(m => m.dispose());
+                    meshRef.current.material.forEach((m: any) => {
+                        m.dispose();
+                        if (m.map) m.map.dispose();
+                    });
                 } else {
-                    meshRef.current.material.dispose();
+                    const mat = meshRef.current.material as any;
+                    mat.dispose();
+                    if (mat.map) mat.map.dispose();
                 }
             }
         };
@@ -344,6 +349,32 @@ export default function Home() {
                 recognitionRef.current = recognition;
                 activelyListeningRef.current = true;
                 recognition.start();
+
+                // --- Voice Shout Trigger (Instant Response) ---
+                if (!audioCtxRef.current) return;
+                const analyser = audioCtxRef.current.createAnalyser();
+                analyser.fftSize = 32;
+                const source = audioCtxRef.current.createMediaStreamSource(stream);
+                source.connect(analyser);
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                const checkVolume = () => {
+                    if (!activelyListeningRef.current) return;
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    const avg = sum / dataArray.length;
+
+                    // If shouting loudly while locked -> Instant Summon!
+                    if (gameStateRef.current === 'locked' && avg > 110) {
+                        startSummon();
+                    }
+
+                    if (gameStateRef.current !== 'done') {
+                        requestAnimationFrame(checkVolume);
+                    }
+                };
+                checkVolume();
 
                 setInitStatus('COMPLETED');
                 setTimeout(() => {

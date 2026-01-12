@@ -55,6 +55,8 @@ const ParallaxGroup = ({ children, intensity = 1 }: { children: React.ReactNode,
     return <group ref={group}>{children}</group>;
 };
 
+const dummy = new THREE.Object3D();
+
 const Particles = ({ count = 20, color = "#ff5e00", isRising = false }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const particles = useMemo(() => {
@@ -68,26 +70,32 @@ const Particles = ({ count = 20, color = "#ff5e00", isRising = false }) => {
         return temp;
     }, [count]);
 
+    useFrame(() => {
+        if (!meshRef.current) return;
+        particles.forEach((p, i) => {
+            if (isRising) {
+                p.pos.y += p.speed;
+                if (p.pos.y > 8) p.pos.y = -8;
+            }
+            dummy.position.copy(p.pos);
+            dummy.updateMatrix();
+            meshRef.current?.setMatrixAt(i, dummy.matrix);
+        });
+        meshRef.current.instanceMatrix.needsUpdate = true;
+    });
+
     useEffect(() => {
-        let animId: number;
-        const animate = () => {
-            if (!meshRef.current) return;
-            const dummy = new THREE.Object3D();
-            particles.forEach((p, i) => {
-                if (isRising) {
-                    p.pos.y += p.speed;
-                    if (p.pos.y > 8) p.pos.y = -8;
+        return () => {
+            if (meshRef.current) {
+                meshRef.current.geometry.dispose();
+                if (Array.isArray(meshRef.current.material)) {
+                    meshRef.current.material.forEach(m => m.dispose());
+                } else {
+                    meshRef.current.material.dispose();
                 }
-                dummy.position.copy(p.pos);
-                dummy.updateMatrix();
-                meshRef.current?.setMatrixAt(i, dummy.matrix);
-            });
-            meshRef.current.instanceMatrix.needsUpdate = true;
-            animId = requestAnimationFrame(animate);
+            }
         };
-        animate();
-        return () => cancelAnimationFrame(animId);
-    }, [particles, isRising]);
+    }, []);
 
     return (
         <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
@@ -98,6 +106,7 @@ const Particles = ({ count = 20, color = "#ff5e00", isRising = false }) => {
 };
 
 const FoxScene = ({ state }: { state: string }) => {
+    // These hooks handle the texture loading and caching.
     const tex01 = useTexture('/fox01.png');
     const tex02 = useTexture('/fox02.png');
     const tex03 = useTexture('/fox03.png');
@@ -105,30 +114,25 @@ const FoxScene = ({ state }: { state: string }) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const matRef = useRef<THREE.MeshBasicMaterial>(null);
     const stateRefs = useRef({ opac: 0, scale: 1 });
-    const [activeTex, setActiveTex] = useState<THREE.Texture>(tex01);
 
-    useEffect(() => {
-        if (state === 'locked') {
-            setActiveTex(tex01);
-        } else if (state === 'summoning' || state === 'closeup') {
-            setActiveTex(tex02);
-        } else if (['victory', 'cooloff', 'evaporating', 'done'].includes(state)) {
-            setActiveTex(tex03);
-        }
-    }, [state, tex01, tex02, tex03]);
-
-    useFrame(() => {
+    useFrame((rstate) => {
         if (!meshRef.current || !matRef.current) return;
 
-        // Force zero rotation at all times to prevent any slanting
         meshRef.current.rotation.set(0, 0, 0);
 
         if (state === 'locked') {
+            if (matRef.current.map !== tex01) matRef.current.map = tex01;
             stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 13, 0.15);
             stateRefs.current.opac = THREE.MathUtils.lerp(stateRefs.current.opac, 1, 0.15);
         } else if (state === 'summoning' || state === 'closeup') {
+            if (matRef.current.map !== tex02) matRef.current.map = tex02;
             stateRefs.current.scale = THREE.MathUtils.lerp(stateRefs.current.scale, 18, 0.2);
             stateRefs.current.opac = 1;
+        } else if (['victory', 'cooloff', 'evaporating', 'done'].includes(state)) {
+            if (matRef.current.map !== tex03) matRef.current.map = tex03;
+            // The 3D mesh is hidden in favor of 2D overlay for stable display
+            stateRefs.current.opac = 0;
+            stateRefs.current.scale = 0.1;
         } else {
             stateRefs.current.opac = 0;
             stateRefs.current.scale = 0.1;
@@ -138,8 +142,8 @@ const FoxScene = ({ state }: { state: string }) => {
         matRef.current.opacity = stateRefs.current.opac;
     });
 
-    // Only render the 3D mesh for locked/summoning states.
-    // Victory and ending will use a more stable 2D overlay.
+    // We only need the FoxScene when moving towards the summon or during it.
+    // Once victory is achieved, we switch to stable 2D.
     const show3DMesh = ['locked', 'summoning', 'closeup'].includes(state);
 
     return (
@@ -147,7 +151,7 @@ const FoxScene = ({ state }: { state: string }) => {
             <ParallaxGroup intensity={['cooloff', 'evaporating', 'done'].includes(state) ? 0 : (state === 'locked' ? 0.3 : 1.5)}>
                 <Particles
                     count={state === 'evaporating' ? 300 : 40}
-                    color={state === 'evaporating' ? "#ffffff" : "#3b82f6"} // Heroic Blue
+                    color={state === 'evaporating' ? "#ffffff" : "#3b82f6"}
                     isRising={state === 'evaporating'}
                 />
                 {show3DMesh && (
@@ -155,7 +159,7 @@ const FoxScene = ({ state }: { state: string }) => {
                         <planeGeometry args={[1, 1]} />
                         <meshBasicMaterial
                             ref={matRef}
-                            map={activeTex}
+                            map={tex01}
                             transparent
                             depthTest={false}
                             opacity={0}
@@ -894,10 +898,15 @@ export default function Home() {
             </div>
 
             <div className="absolute inset-0 z-20 pointer-events-none">
-                <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-                    <ambientLight intensity={1.5} />
-                    <Suspense fallback={null}><FoxScene state={gameState} /><SummonEffects state={gameState} /></Suspense>
-                </Canvas>
+                {isInitialized && !['idle', 'done'].includes(gameState) && (
+                    <Canvas camera={{ position: [0, 0, 5], fov: 50 }} gl={{ antialias: false, powerPreference: 'high-performance' }}>
+                        <ambientLight intensity={1.5} />
+                        <Suspense fallback={null}>
+                            <FoxScene state={gameState} />
+                            <SummonEffects state={gameState} />
+                        </Suspense>
+                    </Canvas>
+                )}
             </div>
 
             {/* Kizuna: Hand Sync Silhouette */}

@@ -1021,7 +1021,7 @@ export default function Home() {
                             </div>
 
                             <p className="text-white text-4xl font-black italic text-center leading-tight drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                                {gameState === 'locked' ? "「 ... 喚べ。 」" : "「 いつでもいいよ。 」"}
+                                {gameState === 'locked' ? "「 ... 叫べ！ 」" : "「 ロックオン中... 」"}
                             </p>
 
                             <div className="h-4 flex items-center justify-center">

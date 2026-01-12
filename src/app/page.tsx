@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { useTexture, CameraShake } from '@react-three/drei';
-import { Mic, MicOff, Camera, VideoOff } from 'lucide-react';
+import { Mic, MicOff, Camera, VideoOff, Globe, Instagram } from 'lucide-react';
 import * as THREE from 'three';
 import { useHandTracking } from '@/hooks/useHandTracking';
 import { useMemo } from 'react';
@@ -193,12 +193,27 @@ export default function Home() {
     const endingAudioRef = useRef<HTMLAudioElement | null>(null);
     const recognitionRef = useRef<any>(null);
     const activelyListeningRef = useRef(false);
+    const autoResetTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Use a ref for gameState to avoid restarting recognition on every state change
     const gameStateRef = useRef(gameState);
     useEffect(() => {
         gameStateRef.current = gameState;
     }, [gameState]);
+
+    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission + webcamEnabled);
+    const [isSynced, setIsSynced] = useState(false);
+
+    useEffect(() => {
+        if (!isFoxHand || !handPosition) {
+            setIsSynced(false);
+            return;
+        }
+        const targetX = 0.5;
+        const targetY = 0.5;
+        const dist = Math.sqrt(Math.pow(handPosition.x - targetX, 2) + Math.pow(handPosition.y - targetY, 2));
+        setIsSynced(dist < 0.18);
+    }, [isFoxHand, handPosition]);
 
     // Check support and permissions on mount
     useEffect(() => {
@@ -236,7 +251,26 @@ export default function Home() {
             battleAudioRef.current?.pause();
             endingAudioRef.current?.pause();
             recognitionRef.current?.stop();
+            if (autoResetTimerRef.current) clearTimeout(autoResetTimerRef.current);
         };
+    }, []);
+
+    const resetToStartup = useCallback(() => {
+        // Stop all processes
+        battleAudioRef.current?.pause();
+        if (battleAudioRef.current) battleAudioRef.current.currentTime = 0;
+        endingAudioRef.current?.pause();
+        if (endingAudioRef.current) endingAudioRef.current.currentTime = 0;
+        recognitionRef.current?.stop();
+
+        // Reset all states
+        setIsInitialized(false);
+        setGameState('idle');
+        setInitStatus('STANDBY');
+        setWebcamEnabled(false);
+        setIsKonShouted(false);
+        setLastHeard('');
+        setIsMicActive(false);
     }, []);
 
     const initializeSystem = async () => {
@@ -260,29 +294,18 @@ export default function Home() {
                 recognition.continuous = true;
                 recognition.interimResults = true;
 
-                recognition.onstart = () => setIsMicActive(true);
-                recognition.onend = () => {
-                    setIsMicActive(false);
-                    if (activelyListeningRef.current) {
-                        try { recognition.start(); } catch (e) { }
-                    }
-                };
-
                 recognition.onresult = (event: any) => {
                     for (let i = event.resultIndex; i < event.results.length; i++) {
                         const transcript = event.results[i][0].transcript.trim();
-                        // Normalize: remove punctuation and lowercase
                         const text = transcript.replace(/[。？！!.?、]$/, "").toLowerCase();
                         setLastHeard(transcript);
 
-                        // Clear lastHeard after 3 seconds
                         setTimeout(() => setLastHeard(prev => prev === transcript ? '' : prev), 3000);
 
                         if (gameStateRef.current === 'locked') {
                             const isMatch = FOX_TRIGGER_WORD.some(word =>
                                 text === word || text.includes(word)
                             );
-                            // Broad phonetic check for 'k-vowel-n' patterns to catch varied transcriptions
                             const isPhoneticMatch = /k[oaui]n/i.test(text) || /[こコ][んン]/.test(text);
 
                             if (isMatch || isPhoneticMatch || (text.length > 3 && text.includes('ん'))) {
@@ -302,20 +325,47 @@ export default function Home() {
                 recognitionRef.current = recognition;
                 activelyListeningRef.current = true;
                 recognition.start();
+
+                setInitStatus('COMPLETED');
+                setTimeout(() => {
+                    setIsInitialized(true);
+                    setWebcamEnabled(true);
+                }, 800);
             }
-
-            setInitStatus('COMPLETED');
-            setTimeout(() => {
-                setIsInitialized(true);
-                setWebcamEnabled(true);
-            }, 800);
-
         } catch (err) {
             console.error("Initialization failed:", err);
             setInitStatus('ERROR: ACCESS DENIED');
             alert("カメラとマイクの許可が必要です。ブラウザの設定を確認してください。");
         }
     };
+
+    // Auto-Reset Timer Logic
+    useEffect(() => {
+        if (!isInitialized) return;
+
+        const refreshTimer = () => {
+            if (autoResetTimerRef.current) clearTimeout(autoResetTimerRef.current);
+            autoResetTimerRef.current = setTimeout(() => {
+                resetToStartup();
+            }, 180000); // 180 seconds
+        };
+
+        refreshTimer();
+
+        const events = ['mousedown', 'mousemove', 'keydown', 'touchstart'];
+        events.forEach(event => window.addEventListener(event, refreshTimer));
+
+        let interval: NodeJS.Timeout;
+        if (gameState === 'detecting' || (gameState === 'locked' && isFoxHand)) {
+            interval = setInterval(refreshTimer, 10000);
+        }
+
+        return () => {
+            events.forEach(event => window.removeEventListener(event, refreshTimer));
+            if (autoResetTimerRef.current) clearTimeout(autoResetTimerRef.current);
+            if (interval) clearInterval(interval);
+        };
+    }, [isInitialized, gameState, isFoxHand, resetToStartup]);
 
     // Manage BGM transitions
     useEffect(() => {
@@ -334,20 +384,6 @@ export default function Home() {
             endingAudioRef.current?.play().catch(() => { });
         }
     }, [gameState, isInitialized]);
-
-    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission + webcamEnabled);
-    const [isSynced, setIsSynced] = useState(false);
-
-    useEffect(() => {
-        if (!isFoxHand || !handPosition) {
-            setIsSynced(false);
-            return;
-        }
-        const targetX = 0.5;
-        const targetY = 0.5;
-        const dist = Math.sqrt(Math.pow(handPosition.x - targetX, 2) + Math.pow(handPosition.y - targetY, 2));
-        setIsSynced(dist < 0.18);
-    }, [isFoxHand, handPosition]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -618,6 +654,21 @@ export default function Home() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* App QR Code Sharing */}
+                                        <div className="mt-6 pt-6 border-t border-cyan-500/10 flex items-center gap-4">
+                                            <div className="p-1.5 bg-white rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                                                <img
+                                                    src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://fox-summon-9pm5.vercel.app&color=083344&bgcolor=ffffff"
+                                                    alt="App QR Code"
+                                                    className="w-[60px] h-[60px] block"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Mobile Link</span>
+                                                <span className="text-[7px] font-mono text-cyan-500/60 leading-tight">SCAN TO CONTINUE<br />DIVE ON MOBILE</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -694,9 +745,37 @@ export default function Home() {
                                 </div>
                             </div>
 
-                            <p className="text-[8px] font-mono text-zinc-600 tracking-widest uppercase mt-4">
-                                Justice. Courage. Alliance.
-                            </p>
+                            <div className="pt-8 border-t border-white/5 flex flex-col items-center gap-6">
+                                <p className="text-[10px] font-mono text-white/30 tracking-[0.4em] uppercase">
+                                    Alliance Protocol Powered By
+                                </p>
+                                <div className="flex flex-col md:flex-row items-center gap-8">
+                                    <div className="text-center md:text-left">
+                                        <span className="text-cyan-400 text-xs font-black tracking-widest block mb-1">提供</span>
+                                        <span className="text-white text-xl font-black tracking-widest uppercase">しろい白井プログラミング教室</span>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <a
+                                            href="https://shiroi-hackers.com/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-3 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-cyan-400 hover:border-cyan-400/50 hover:bg-cyan-400/10 transition-all group flex items-center gap-3"
+                                        >
+                                            <Globe size={18} />
+                                            <span className="text-[9px] font-mono font-black tracking-widest hidden group-hover:block uppercase">Official Site</span>
+                                        </a>
+                                        <a
+                                            href="https://www.instagram.com/shiroihackers/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-3 rounded-full bg-white/5 border border-white/10 text-white/40 hover:text-pink-400 hover:border-pink-400/50 hover:bg-pink-400/10 transition-all group flex items-center gap-3"
+                                        >
+                                            <Instagram size={18} />
+                                            <span className="text-[9px] font-mono font-black tracking-widest hidden group-hover:block uppercase">Instagram</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

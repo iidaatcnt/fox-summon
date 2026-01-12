@@ -242,8 +242,10 @@ export default function Home() {
 
         battleAudioRef.current = new Audio('/battle.mp3');
         battleAudioRef.current.loop = true;
+        battleAudioRef.current.volume = 0.5; // Lower volume
         endingAudioRef.current = new Audio('/ending.mp3');
         endingAudioRef.current.loop = true;
+        endingAudioRef.current.volume = 0.5; // Lower volume
 
         // Fetch external video playlist
         fetch('/videos.txt')
@@ -605,7 +607,7 @@ export default function Home() {
         }, 1200);
     };
 
-    const showWebcam = ['idle', 'detecting', 'locked'].includes(gameState) && webcamEnabled;
+    const showWebcam = webcamEnabled;
     const isBiting = ['summoning', 'closeup'].includes(gameState);
 
     return (
@@ -928,17 +930,15 @@ export default function Home() {
                 )}
             </AnimatePresence>
 
-            <div className={`absolute top-4 right-4 w-32 h-24 z-40 rounded-lg overflow-hidden border border-cyan-500/20 shadow-xl transition-all duration-700 pointer-events-none ${showWebcam ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute top-4 right-4 w-32 h-24 z-40 rounded-lg overflow-hidden border border-cyan-500/20 shadow-xl transition-all duration-700 pointer-events-none ${(['idle', 'detecting', 'locked'].includes(gameState) && showWebcam) ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="relative w-full h-full pointer-events-auto">
-                    {showWebcam && (
-                        <Webcam
-                            ref={webcamRef}
-                            audio={false}
-                            className="w-full h-full object-cover grayscale contrast-125 brightness-125 blur-[1px]"
-                            onUserMedia={() => setCameraPermission(true)}
-                            videoConstraints={{ facingMode: "user" }}
-                        />
-                    )}
+                    <Webcam
+                        ref={webcamRef}
+                        audio={false}
+                        className="w-full h-full object-cover grayscale contrast-125 brightness-125 blur-[1px]"
+                        onUserMedia={() => setCameraPermission(true)}
+                        videoConstraints={{ facingMode: "user" }}
+                    />
                     <div className="absolute inset-0 pointer-events-none">
                         <motion.div className="w-full h-[2px] bg-cyan-500/50 shadow-[0_0_8px_rgba(6,182,212,0.8)]" animate={{ top: ["0%", "100%", "0%"] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
                         <div className="absolute bottom-2 right-8 text-[8px] font-mono text-cyan-500/80 animate-pulse">{isFoxHand ? "HERO_READY" : "SCANNING"}</div>

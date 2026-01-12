@@ -575,64 +575,68 @@ export default function Home() {
                                 </div>
                             </div>
 
-                            {/* System Readiness Box */}
-                            <div className="grid md:grid-cols-2 gap-4">
-                                {/* YouTube Instruction Loop (Added for Mobile/Context) */}
-                                <motion.div
-                                    initial={{ opacity: 0, x: -50 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 1, delay: 0.5 }}
-                                    className="absolute -left-[32rem] top-0 z-30 hidden xl:block"
-                                >
-                                    <div className="relative group scale-75 origin-top-left">
-                                        <div className="absolute -inset-1 bg-cyan-500/20 rounded-lg blur group-hover:bg-cyan-500/40 transition duration-500" />
-                                        <div className="relative w-80 aspect-[9/16] bg-black border-2 border-cyan-500/30 rounded-lg overflow-hidden flex flex-col shadow-2xl">
-                                            <div className="bg-cyan-950/40 px-3 py-2 border-b border-cyan-500/30 flex justify-between items-center text-[8px] font-mono tracking-widest text-cyan-400">
-                                                <span>REFERENCE_ARCHIVE</span>
-                                                <div className="flex gap-1">
-                                                    <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
-                                                    <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse delay-75" />
+                            {/* Integrated System HUD */}
+                            <div className="grid md:grid-cols-2 gap-6 items-stretch">
+                                {/* System Status Panel */}
+                                <div className="space-y-4">
+                                    <div className="bg-cyan-950/20 backdrop-blur-md border-t-2 border-cyan-500/30 p-6 text-left rounded-xl shadow-xl h-full flex flex-col justify-center">
+                                        <h3 className="text-cyan-400 font-black text-xs tracking-[0.3em] mb-4 uppercase flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+                                            Avatar Link Status
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <div className={`flex items-center gap-4 transition-all ${cameraPermission ? 'text-white' : 'text-white/20'}`}>
+                                                <div className={`p-2 rounded-lg ${cameraPermission ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5'}`}>
+                                                    <Camera size={18} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest">Visual_Input</span>
+                                                    <span className="text-[11px] font-mono uppercase tracking-widest font-black">{cameraPermission ? 'LINK_ESTABLISHED' : 'AWAITING_SIGNAL'}</span>
                                                 </div>
                                             </div>
-                                            <iframe
-                                                className="w-full h-full"
-                                                src="https://www.youtube.com/embed/NmZFiYlzvgA?autoplay=1&mute=1&loop=1&playlist=NmZFiYlzvgA&controls=0&modestbranding=1&rel=0"
-                                                title="Chainsaw Man Fox Summon Reference"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                            />
-                                            <div className="p-3 bg-black/80 backdrop-blur-sm border-t border-cyan-500/20">
-                                                <p className="text-[10px] text-cyan-500/80 font-mono tracking-tighter leading-tight italic">
-                                                    &gt; THE_ORIGIN_OF_THE_BOND<br />
-                                                    &gt; VIEW_AND_PREPARE_GESTURE
-                                                </p>
+                                            <div className={`flex items-center gap-4 transition-all ${micPermission ? 'text-white' : 'text-white/20'}`}>
+                                                <div className={`p-2 rounded-lg ${micPermission ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5'}`}>
+                                                    <Mic size={18} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest">Audio_Input</span>
+                                                    <span className="text-[11px] font-mono uppercase tracking-widest font-black">{micPermission ? 'LINK_ESTABLISHED' : 'AWAITING_SIGNAL'}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                                <div className="bg-cyan-950/20 backdrop-blur-md border-t-2 border-cyan-500/30 p-6 text-left rounded-xl shadow-xl">
-                                    <h3 className="text-cyan-400 font-black text-xs tracking-[0.3em] mb-4 uppercase flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
-                                        Avatar Link Status
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <div className={`flex items-center gap-3 transition-all ${cameraPermission ? 'text-white' : 'text-white/20'}`}>
-                                            <Camera size={14} className={cameraPermission ? 'text-cyan-400' : ''} />
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">Optical: {cameraPermission ? 'LINKED' : 'WAITING'}</span>
-                                        </div>
-                                        <div className={`flex items-center gap-3 transition-all ${micPermission ? 'text-white' : 'text-white/20'}`}>
-                                            <Mic size={14} className={micPermission ? 'text-cyan-400' : ''} />
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">Voice: {micPermission ? 'LINKED' : 'WAITING'}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 text-left rounded-xl flex flex-col justify-center shadow-lg">
-                                    <p className="text-[9px] text-zinc-400 font-mono leading-relaxed uppercase tracking-widest">
-                                        ヒーローを呼び出すために、カメラとマイクの許可が必要です。
-                                        準備ができたら、下のボタンを押して出撃してください。
-                                    </p>
-                                </div>
+                                {/* Reference Video Panel */}
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="relative group h-full"
+                                >
+                                    <div className="absolute -inset-1 bg-cyan-500/20 rounded-xl blur group-hover:bg-cyan-500/30 transition duration-500" />
+                                    <div className="relative h-full bg-black border border-cyan-500/30 rounded-xl overflow-hidden shadow-2xl flex flex-col">
+                                        <div className="bg-cyan-950/40 px-3 py-1.5 border-b border-cyan-500/30 flex justify-between items-center text-[7px] font-mono tracking-widest text-cyan-400">
+                                            <span>MISSION_REFERENCE_01</span>
+                                            <div className="flex gap-1">
+                                                <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-h-[160px] bg-zinc-900">
+                                            <iframe
+                                                className="w-full h-full"
+                                                src="https://www.youtube.com/embed/NmZFiYlzvgA?autoplay=1&mute=1&loop=1&playlist=NmZFiYlzvgA&controls=0&modestbranding=1&rel=0"
+                                                title="Reference"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            />
+                                        </div>
+                                        <div className="p-2.5 bg-cyan-950/20 backdrop-blur-sm">
+                                            <p className="text-[8px] text-cyan-500/70 font-mono tracking-tighter leading-tight uppercase">
+                                                &gt; ARCHIVE: GESTURE_SYNC_REF<br />
+                                                &gt; TARGET: FOX_AWAKENING
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
                             </div>
 
                             {/* Hero Start Button */}

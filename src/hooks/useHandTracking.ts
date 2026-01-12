@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 
-export const useHandTracking = (videoRef: React.RefObject<any>, dependency?: any) => {
+export const useHandTracking = (videoRef: React.RefObject<any>, isPaused: boolean = false) => {
     const [handLandmarker, setHandLandmarker] = useState<HandLandmarker | null>(null);
     const [isFoxHand, setIsFoxHand] = useState(false);
     const [handPosition, setHandPosition] = useState<{ x: number, y: number } | null>(null);
@@ -28,30 +28,32 @@ export const useHandTracking = (videoRef: React.RefObject<any>, dependency?: any
         if (!handLandmarker) return;
 
         let requestAnimationFrameId: number;
-        let isActive = true;
+        let isLoopActive = true;
 
         const predictLoop = async () => {
-            if (!isActive) return;
+            if (!isLoopActive) return;
 
-            const video = videoRef.current?.video;
-            if (video && video.readyState >= 2) {
-                try {
-                    const startTimeMs = performance.now();
-                    const result = handLandmarker.detectForVideo(video, startTimeMs);
+            if (!isPaused) {
+                const video = videoRef.current?.video;
+                if (video && video.readyState >= 2) {
+                    try {
+                        const startTimeMs = performance.now();
+                        const result = handLandmarker.detectForVideo(video, startTimeMs);
 
-                    if (result.landmarks && result.landmarks.length > 0) {
-                        const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
-                        setIsFoxHand(detected);
-                        if (detected) {
-                            const pos = result.landmarks[0][12];
-                            setHandPosition({ x: pos.x, y: pos.y });
+                        if (result.landmarks && result.landmarks.length > 0) {
+                            const detected = result.landmarks.some(landmarks => detectFoxSign(landmarks));
+                            setIsFoxHand(detected);
+                            if (detected) {
+                                const pos = result.landmarks[0][12];
+                                setHandPosition({ x: pos.x, y: pos.y });
+                            }
+                        } else {
+                            setIsFoxHand(false);
+                            setHandPosition(null);
                         }
-                    } else {
-                        setIsFoxHand(false);
-                        setHandPosition(null);
+                    } catch (err) {
+                        // Silently ignore tracking errors unless critical
                     }
-                } catch (err) {
-                    // Silently ignore tracking errors unless critical
                 }
             }
 
@@ -61,10 +63,10 @@ export const useHandTracking = (videoRef: React.RefObject<any>, dependency?: any
         predictLoop();
 
         return () => {
-            isActive = false;
+            isLoopActive = false;
             cancelAnimationFrame(requestAnimationFrameId);
         };
-    }, [handLandmarker, videoRef]);
+    }, [handLandmarker, videoRef, isPaused]);
 
     return { isFoxHand, handPosition };
 };

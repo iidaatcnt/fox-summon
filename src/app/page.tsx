@@ -211,7 +211,7 @@ export default function Home() {
         gameStateRef.current = gameState;
     }, [gameState]);
 
-    const { isFoxHand, handPosition } = useHandTracking(webcamRef, gameState + cameraPermission + webcamEnabled);
+    const { isFoxHand, handPosition } = useHandTracking(webcamRef, ['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating', 'done'].includes(gameState));
     const [isSynced, setIsSynced] = useState(false);
 
     useEffect(() => {

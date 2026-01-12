@@ -375,11 +375,11 @@ export default function Home() {
             endingAudioRef.current?.pause();
             if (endingAudioRef.current) endingAudioRef.current.currentTime = 0;
             battleAudioRef.current?.play().catch(() => { });
-        } else if (['locked', 'summoning', 'closeup', 'victory', 'cooloff', 'evaporating'].includes(gameState)) {
+        } else if (['locked', 'summoning', 'closeup'].includes(gameState)) {
             battleAudioRef.current?.pause();
             if (battleAudioRef.current) battleAudioRef.current.currentTime = 0;
             endingAudioRef.current?.pause();
-        } else if (gameState === 'done') {
+        } else if (['victory', 'cooloff', 'evaporating', 'done'].includes(gameState)) {
             battleAudioRef.current?.pause();
             endingAudioRef.current?.play().catch(() => { });
         }

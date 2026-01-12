@@ -577,6 +577,39 @@ export default function Home() {
 
                             {/* System Readiness Box */}
                             <div className="grid md:grid-cols-2 gap-4">
+                                {/* YouTube Instruction Loop (Added for Mobile/Context) */}
+                                <motion.div
+                                    initial={{ opacity: 0, x: -50 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 1, delay: 0.5 }}
+                                    className="absolute -left-[32rem] top-0 z-30 hidden xl:block"
+                                >
+                                    <div className="relative group scale-75 origin-top-left">
+                                        <div className="absolute -inset-1 bg-cyan-500/20 rounded-lg blur group-hover:bg-cyan-500/40 transition duration-500" />
+                                        <div className="relative w-80 aspect-[9/16] bg-black border-2 border-cyan-500/30 rounded-lg overflow-hidden flex flex-col shadow-2xl">
+                                            <div className="bg-cyan-950/40 px-3 py-2 border-b border-cyan-500/30 flex justify-between items-center text-[8px] font-mono tracking-widest text-cyan-400">
+                                                <span>REFERENCE_ARCHIVE</span>
+                                                <div className="flex gap-1">
+                                                    <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
+                                                    <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse delay-75" />
+                                                </div>
+                                            </div>
+                                            <iframe
+                                                className="w-full h-full"
+                                                src="https://www.youtube.com/embed/NmZFiYlzvgA?autoplay=1&mute=1&loop=1&playlist=NmZFiYlzvgA&controls=0&modestbranding=1&rel=0"
+                                                title="Chainsaw Man Fox Summon Reference"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            />
+                                            <div className="p-3 bg-black/80 backdrop-blur-sm border-t border-cyan-500/20">
+                                                <p className="text-[10px] text-cyan-500/80 font-mono tracking-tighter leading-tight italic">
+                                                    &gt; THE_ORIGIN_OF_THE_BOND<br />
+                                                    &gt; VIEW_AND_PREPARE_GESTURE
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
                                 <div className="bg-cyan-950/20 backdrop-blur-md border-t-2 border-cyan-500/30 p-6 text-left rounded-xl shadow-xl">
                                     <h3 className="text-cyan-400 font-black text-xs tracking-[0.3em] mb-4 uppercase flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
